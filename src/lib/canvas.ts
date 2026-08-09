@@ -12,7 +12,7 @@ export interface RenderCardOptions {
 }
 
 /**
- * Renders the Format B Builder ID Card onto the canvas with surgical precision for the barcode & bottom credential panel.
+ * Renders the Format B Builder ID Card onto the canvas with micro-adjusted bottom credential panel geometry.
  * Canvas resolution: 1200px x 1500px (4:5 vertical ID ratio).
  */
 export async function renderBuilderCardCanvas({
@@ -92,7 +92,7 @@ export async function renderBuilderCardCanvas({
   drawRoundedRect(ctx, cardX + 8, cardY + 8, cardW - 16, cardH - 16, cardRadius - 8);
   ctx.stroke();
 
-  // 4. TOP HEADER SECTION (Structured Spacing)
+  // 4. TOP HEADER SECTION
   const headerY = cardY + 44; // 76px
 
   // Status Badge (Top Left Pill)
@@ -258,16 +258,15 @@ export async function renderBuilderCardCanvas({
   }
   ctx.fillText(stackText, stackBoxX + 164, stackYPos);
 
-  // 8. LARGE BREATHING SPACE / GOA SUNSET ARTWORK (y: 915px to 1250px)
-  // The tropical landscape, sunset, ocean, beach and palm trees remain unobstructed here.
+  // 8. LARGE BREATHING SPACE / GOA SUNSET ARTWORK (y: 915px to 1240px)
 
-  // 9. SURGICAL FIX: THREE-COLUMN CREDENTIAL PANEL & FIXED ASPECT RATIO BARCODE (y: 1250px to 1410px, height: 160px)
-  const panelY = 1250;
-  const panelH = 160;
+  // 9. MICRO-ADJUSTED BOTTOM CREDENTIAL PANEL & CENTERED BARCODE (panelY: 1240px, panelH: 156px)
+  const panelY = 1240;
+  const panelH = 156;
   const panelW = cardW - 88; // 1048px
   const panelX = (width - panelW) / 2; // 76px
 
-  // Translucent Dark Forest Credential Panel Container
+  // Translucent Dark Forest Panel Container
   ctx.fillStyle = "rgba(7, 59, 41, 0.9)";
   drawRoundedRect(ctx, panelX, panelY, panelW, panelH, 20);
   ctx.fill();
@@ -278,28 +277,28 @@ export async function renderBuilderCardCanvas({
   ctx.stroke();
 
   const idHash = Math.abs(simpleHash(displayName + displayStack) % 9000) + 1000;
-  const leftRightBaselineY = panelY + 45; // 1295px
+  const colBaselineY = panelY + 42; // 1282px -> text lines at 1290px, 1318px, 1344px
 
-  // LEFT COLUMN: BUILDER ID & BOUNTIES (x: 108px, left-aligned)
-  const leftX = panelX + 32;
+  // LEFT COLUMN: BUILDER ID & BOUNTIES (Inward at x: 112px, left-aligned)
+  const leftX = panelX + 36; // 112px
   ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.font = "900 12px system-ui, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText("BUILDER ID", leftX, leftRightBaselineY);
+  ctx.fillText("BUILDER ID", leftX, colBaselineY + 8);
 
   ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
   ctx.font = "bold 22px monospace";
-  ctx.fillText(`HHG26-${idHash}`, leftX, leftRightBaselineY + 28);
+  ctx.fillText(`HHG26-${idHash}`, leftX, colBaselineY + 36);
 
   ctx.fillStyle = BRAND_CONFIG.colors.midGreen;
   ctx.font = "bold 13px system-ui, sans-serif";
-  ctx.fillText(BRAND_CONFIG.bountyTotal, leftX, leftRightBaselineY + 54);
+  ctx.fillText(BRAND_CONFIG.bountyTotal, leftX, colBaselineY + 62);
 
-  // CENTER COLUMN: DEDICATED BARCODE CONTAINER (320px x 108px, centered in panel)
-  const containerW = 320;
-  const containerH = 108;
-  const containerX = (width - containerW) / 2; // 440px
-  const containerY = panelY + (panelH - containerH) / 2; // 1276px
+  // CENTER COLUMN: BARCODE CONTAINER (~10% larger barcode: 296px x 56px inside 330px x 104px container)
+  const containerW = 330;
+  const containerH = 104;
+  const containerX = (width - containerW) / 2; // 435px (Mathematically centered relative to panel)
+  const containerY = panelY + (panelH - containerH) / 2; // 1266px
 
   ctx.fillStyle = "rgba(6, 79, 50, 0.95)";
   drawRoundedRect(ctx, containerX, containerY, containerW, containerH, 12);
@@ -310,46 +309,45 @@ export async function renderBuilderCardCanvas({
   drawRoundedRect(ctx, containerX, containerY, containerW, containerH, 12);
   ctx.stroke();
 
-  // FIXED ASPECT RATIO BARCODE (270px wide, 60px high, exact undistorted vertical bars)
-  const barcodeW = 270;
-  const barcodeH = 60;
-  const barcodeDrawX = containerX + (containerW - barcodeW) / 2; // 465px
-  const barcodeDrawY = containerY + 12; // 1288px
+  // 10% Larger Undistorted Barcode (296px wide, 56px high, 17px padding)
+  const barcodeW = 296;
+  const barcodeH = 56;
+  const barcodeDrawX = containerX + (containerW - barcodeW) / 2; // 452px
+  const barcodeDrawY = containerY + 12; // 1278px
 
   ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
-  // Authentic fixed barcode pattern (exact pixel widths without variable stretch)
-  const fixedBarPattern = [
-    3, 2, 4, 2, 2, 4, 2, 3, 2, 5, 2, 2, 4, 2, 3, 2, 4, 2, 2, 3, 2, 4, 2, 3, 2, 4, 2, 3, 2, 4, 2, 3, 2
+  const barPattern = [
+    4, 2, 5, 2, 3, 5, 2, 4, 2, 6, 3, 2, 4, 2, 5, 3, 5, 2, 3, 5, 2, 4, 2, 6, 3, 2, 4, 2, 5, 3, 4, 2
   ];
   let curX = barcodeDrawX;
-  for (const bw of fixedBarPattern) {
+  for (const bw of barPattern) {
     ctx.fillRect(curX, barcodeDrawY, bw, barcodeH);
-    curX += bw + 4;
+    curX += bw + 4.4;
   }
 
-  // BARCODE ID TEXT (Centered directly below barcode inside container, 8px gap)
+  // Barcode ID Text (6-8px spacing directly below barcode)
   ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.font = "bold 12px monospace";
   ctx.textAlign = "center";
-  ctx.fillText(`HHG26-${idHash}`, width / 2, barcodeDrawY + barcodeH + 20);
+  ctx.fillText(`HHG26-${idHash}`, width / 2, barcodeDrawY + barcodeH + 18);
 
-  // RIGHT COLUMN: HASHTAG & LOCATION (x: 1092px, right-aligned)
-  const rightX = panelX + panelW - 32;
+  // RIGHT COLUMN: HASHTAG & LOCATION (Inward at x: 1088px, right-aligned)
+  const rightX = panelX + panelW - 36; // 1088px
   ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.font = "900 22px system-ui, sans-serif";
   ctx.textAlign = "right";
-  ctx.fillText(BRAND_CONFIG.hashtag, rightX, leftRightBaselineY);
+  ctx.fillText(BRAND_CONFIG.hashtag, rightX, colBaselineY + 8);
 
   ctx.fillStyle = BRAND_CONFIG.colors.textSecondary;
   ctx.font = "13px system-ui, sans-serif";
-  ctx.fillText("247 SELECTED BUILDERS", rightX, leftRightBaselineY + 28);
+  ctx.fillText("247 SELECTED BUILDERS", rightX, colBaselineY + 36);
 
   ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
   ctx.font = "bold 13px system-ui, sans-serif";
-  ctx.fillText("GOA, INDIA", rightX, leftRightBaselineY + 54);
+  ctx.fillText("GOA, INDIA", rightX, colBaselineY + 62);
 
   // 10. BOTTOM EDITORIAL TAGLINE
-  const bottomLineY = cardY + cardH - 18; // 1448px
+  const bottomLineY = cardY + cardH - 18; // 1446px
   ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.font = "900 13px system-ui, sans-serif";
   ctx.textAlign = "center";
