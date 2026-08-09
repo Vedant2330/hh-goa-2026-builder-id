@@ -22,7 +22,7 @@ body {
 
 /* Responsive Goa Tropical Background */
 .goa-bg-environment {
-  background-image: url("/assets/bg-mobile.png");
+  background-image: url("/assets/bg-mobile-ui.png");
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
