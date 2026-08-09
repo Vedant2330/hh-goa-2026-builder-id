@@ -12,7 +12,7 @@ export interface RenderCardOptions {
 }
 
 /**
- * Renders the Format B Builder ID Card onto the canvas.
+ * Renders the Format B Builder ID Card onto the canvas with precision spacing and layout.
  * Canvas resolution: 1200px x 1500px (4:5 vertical ID ratio).
  */
 export async function renderBuilderCardCanvas({
@@ -64,18 +64,18 @@ export async function renderBuilderCardCanvas({
     ctx.fillRect(0, 0, width, height);
   }
 
-  // Subtle dark-green gradient overlay for photo & text contrast
-  const topOverlay = ctx.createLinearGradient(0, 0, 0, 1100);
+  // Subtle dark-green gradient overlay for header and photo contrast
+  const topOverlay = ctx.createLinearGradient(0, 0, 0, 1050);
   topOverlay.addColorStop(0, "rgba(18, 58, 39, 0.35)");
   topOverlay.addColorStop(0.7, "rgba(18, 58, 39, 0.1)");
   topOverlay.addColorStop(1, "rgba(18, 58, 39, 0)");
   ctx.fillStyle = topOverlay;
-  ctx.fillRect(0, 0, width, 1100);
+  ctx.fillRect(0, 0, width, 1050);
 
   // 3. CARD OUTER DOUBLE BORDER FRAME
   const cardMargin = 36;
-  const cardW = width - cardMargin * 2;
-  const cardH = height - cardMargin * 2;
+  const cardW = width - cardMargin * 2; // 1128px
+  const cardH = height - cardMargin * 2; // 1428px
   const cardX = cardMargin;
   const cardY = cardMargin;
   const cardRadius = 36;
@@ -92,11 +92,11 @@ export async function renderBuilderCardCanvas({
   drawRoundedRect(ctx, cardX + 8, cardY + 8, cardW - 16, cardH - 16, cardRadius - 8);
   ctx.stroke();
 
-  // 4. HEADER SECTION
-  const headerY = cardY + 50;
+  // 4. TOP HEADER SECTION (Precision Vertical Rhythm)
+  const headerY = cardY + 48; // 84px
 
-  // Status Badge (Top Left Pill - Sun Yellow with Dark Text)
-  const statusX = cardX + 50;
+  // Status Badge (Top Left Pill)
+  const statusX = cardX + 50; // 86px
   const statusY = headerY;
   ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
   drawRoundedRect(ctx, statusX, statusY, 210, 36, 18);
@@ -114,27 +114,29 @@ export async function renderBuilderCardCanvas({
   ctx.fillText("OFFICIAL BUILDER PASS", statusX + 32, statusY + 22);
 
   // Top Right Organizer Mark
+  const rightHeaderX = cardX + cardW - 50; // 1114px
   ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
   ctx.font = "bold 14px system-ui, sans-serif";
   ctx.textAlign = "right";
-  ctx.fillText(BRAND_CONFIG.organizer, cardX + cardW - 50, statusY + 22);
+  ctx.fillText(BRAND_CONFIG.organizer, rightHeaderX, statusY + 22);
 
   // Event Headline: "HACKER HOUSE GOA 2026"
-  const titleY = headerY + 75;
+  const titleY = headerY + 75; // 159px -> text baseline at 180px
   ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
   ctx.font = "900 46px system-ui, -apple-system, 'Space Grotesk', sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(BRAND_CONFIG.eventName, width / 2, titleY);
 
-  // Subtitle: "BUILDER RESIDENCY • GOA, INDIA"
+  // Subtitle: "BUILDER RESIDENCY · GOA, INDIA"
+  const subtitleY = titleY + 34; // 214px
   ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
   ctx.font = "bold 16px system-ui, -apple-system, sans-serif";
-  ctx.fillText(`${BRAND_CONFIG.eventTag} • ${BRAND_CONFIG.location}`, width / 2, titleY + 30);
+  ctx.fillText(`${BRAND_CONFIG.eventTag} · ${BRAND_CONFIG.location}`, width / 2, subtitleY);
 
-  // 5. PHOTO CONTAINER
-  const photoSize = 490;
-  const photoX = (width - photoSize) / 2;
-  const photoY = titleY + 55;
+  // 5. PROFILE PHOTO MODULE
+  const photoSize = 480;
+  const photoX = (width - photoSize) / 2; // 360px
+  const photoY = 265;
   const photoRadius = 24;
 
   // Photo Outer Frame (Warm Cream & Sun Yellow)
@@ -181,12 +183,12 @@ export async function renderBuilderCardCanvas({
 
   ctx.restore();
 
-  // 6. USER INFO SECTION
-  const infoStartY = photoY + photoSize + 52;
+  // 6. IDENTITY BLOCK: NAME → TITLE BADGE → STACK/ROLE BAR
+  const infoStartY = photoY + photoSize + 52; // 797px
 
-  // Builder Name
+  // Builder Name (Warm Cream `#FBF7E8`)
   const displayName = (name || "ANONYMOUS BUILDER").trim().toUpperCase();
-  let nameFontSize = 50;
+  let nameFontSize = 48;
   ctx.font = `900 ${nameFontSize}px system-ui, -apple-system, 'Space Grotesk', sans-serif`;
   while (ctx.measureText(displayName).width > 920 && nameFontSize > 28) {
     nameFontSize -= 2;
@@ -199,21 +201,21 @@ export async function renderBuilderCardCanvas({
 
   // Builder Title Badge Pill (Goa Pink `#BF4173`)
   const finalTitle = builderTitleOverride || generateBuilderTitle(stack, name);
-  const titleYPos = infoStartY + 48;
+  const titleYPos = infoStartY + 46; // 843px
 
   ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
   const titleMetrics = ctx.measureText(finalTitle);
   const pillWidth = Math.max(340, titleMetrics.width + 72);
-  const pillHeight = 50;
+  const pillHeight = 48;
   const pillX = (width - pillWidth) / 2;
 
   ctx.fillStyle = BRAND_CONFIG.colors.goaPink;
-  drawRoundedRect(ctx, pillX, titleYPos - 35, pillWidth, pillHeight, 25);
+  drawRoundedRect(ctx, pillX, titleYPos - 33, pillWidth, pillHeight, 24);
   ctx.fill();
 
   ctx.strokeStyle = BRAND_CONFIG.colors.sunYellow;
   ctx.lineWidth = 2;
-  drawRoundedRect(ctx, pillX, titleYPos - 35, pillWidth, pillHeight, 25);
+  drawRoundedRect(ctx, pillX, titleYPos - 33, pillWidth, pillHeight, 24);
   ctx.stroke();
 
   ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
@@ -222,12 +224,12 @@ export async function renderBuilderCardCanvas({
   ctx.fillText(finalTitle, width / 2, titleYPos);
 
   // Stack / Role Field Box
-  const stackYPos = titleYPos + 58;
+  const stackYPos = titleYPos + 58; // 901px
   const displayStack = (stack || "Full-Stack Developer / AI Builder").trim();
 
   const stackBoxW = 880;
   const stackBoxH = 48;
-  const stackBoxX = (width - stackBoxW) / 2;
+  const stackBoxX = (width - stackBoxW) / 2; // 160px
 
   ctx.fillStyle = "rgba(18, 58, 39, 0.88)";
   drawRoundedRect(ctx, stackBoxX, stackYPos - 33, stackBoxW, stackBoxH, 12);
@@ -254,28 +256,31 @@ export async function renderBuilderCardCanvas({
     }
     stackText += "...";
   }
-  ctx.fillText(stackText, stackBoxX + 160, stackYPos);
+  ctx.fillText(stackText, stackBoxX + 164, stackYPos);
 
-  // 7. INTEGRATED BOTTOM GREEN INFORMATION BAND (y: 1255px to 1425px)
-  const footerBandY = 1255;
-  const footerBandW = cardW - 40;
-  const footerBandH = 170;
-  const footerBandX = cardX + 20;
+  // 7. OPEN ARTWORK & TRANSITION AREA (y: 925px to 1245px)
+  // The tropical Goa beach, sunset, ocean, and palm trees remain visible in this breathing room.
 
-  // Wide Dark Green Translucent Footer Container (acts directly as the barcode background)
+  // 8. PROFESSIONAL THREE-COLUMN FOOTER INFORMATION SYSTEM (y: 1245px to 1420px)
+  const footerBandY = 1245;
+  const footerBandW = cardW - 80; // 1048px
+  const footerBandH = 175;
+  const footerBandX = cardX + 40; // 76px
+
+  // Translucent Dark Forest Footer Container
   ctx.fillStyle = "rgba(11, 40, 26, 0.88)";
-  drawRoundedRect(ctx, footerBandX, footerBandY, footerBandW, footerBandH, 22);
+  drawRoundedRect(ctx, footerBandX, footerBandY, footerBandW, footerBandH, 20);
   ctx.fill();
 
   ctx.strokeStyle = "rgba(241, 219, 81, 0.35)";
   ctx.lineWidth = 1.5;
-  drawRoundedRect(ctx, footerBandX, footerBandY, footerBandW, footerBandH, 22);
+  drawRoundedRect(ctx, footerBandX, footerBandY, footerBandW, footerBandH, 20);
   ctx.stroke();
 
   const idHash = Math.abs(simpleHash(displayName + displayStack) % 9000) + 1000;
-  const footerCenterY = footerBandY + 45;
+  const footerCenterY = footerBandY + 45; // 1290px
 
-  // LEFT COLUMN: BUILDER ID & BOUNTIES
+  // LEFT COLUMN: BUILDER ID & BOUNTIES (x: 108px, left-aligned)
   const leftX = footerBandX + 32;
   ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
   ctx.font = "900 12px system-ui, sans-serif";
@@ -290,13 +295,28 @@ export async function renderBuilderCardCanvas({
   ctx.font = "bold 13px system-ui, sans-serif";
   ctx.fillText(BRAND_CONFIG.bountyTotal, leftX, footerCenterY + 54);
 
-  // CENTER COLUMN: BARCODE & IDENTIFIER (Placed directly on green bar, 10% larger)
-  const barcodeW = 330;
-  const barcodeH = 54;
-  const barcodeDrawX = (width - barcodeW) / 2;
-  const barcodeDrawY = footerBandY + 28;
+  // CENTER COLUMN: BARCODE CONTAINER & HIGH-CONTRAST BARCODE
+  const bContainerW = 340;
+  const bContainerH = 92;
+  const bContainerX = (width - bContainerW) / 2; // 430px
+  const bContainerY = footerBandY + 18; // 1263px
 
-  // Draw High-Contrast Barcode Bars (Warm Cream `#FBF7E8`)
+  // Subtle Dark Container inside footer for Barcode
+  ctx.fillStyle = "rgba(18, 58, 39, 0.92)";
+  drawRoundedRect(ctx, bContainerX, bContainerY, bContainerW, bContainerH, 12);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(241, 219, 81, 0.25)";
+  ctx.lineWidth = 1;
+  drawRoundedRect(ctx, bContainerX, bContainerY, bContainerW, bContainerH, 12);
+  ctx.stroke();
+
+  // High-Contrast Barcode Bars (Warm Cream `#FBF7E8`)
+  const barcodeW = 304;
+  const barcodeH = 46;
+  const barcodeDrawX = bContainerX + (bContainerW - barcodeW) / 2; // 448px
+  const barcodeDrawY = bContainerY + 12; // 1275px
+
   ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
   const barPattern = [
     4, 2, 5, 2, 3, 5, 2, 4, 2, 6, 3, 2, 4, 2, 5, 3, 5, 2, 3, 5, 2, 4, 2, 6, 3, 2, 4, 2, 5, 3, 4, 2
@@ -307,13 +327,13 @@ export async function renderBuilderCardCanvas({
     currentBarX += bw + 4.5;
   }
 
-  // Barcode Identifier Label (Small Sun Yellow Monospace directly under barcode)
+  // Barcode Identifier Text (Clean monospace directly under barcode)
   ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
   ctx.font = "bold 12px monospace";
   ctx.textAlign = "center";
-  ctx.fillText(`HHG26-${idHash}`, width / 2, barcodeDrawY + barcodeH + 20);
+  ctx.fillText(`HHG26-${idHash}`, width / 2, bContainerY + bContainerH - 10);
 
-  // RIGHT COLUMN: HASHTAG & LOCATION
+  // RIGHT COLUMN: HASHTAG & LOCATION (x: 1092px, right-aligned)
   const rightX = footerBandX + footerBandW - 32;
   ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
   ctx.font = "900 22px system-ui, sans-serif";
@@ -328,8 +348,8 @@ export async function renderBuilderCardCanvas({
   ctx.font = "bold 13px system-ui, sans-serif";
   ctx.fillText("GOA, INDIA", rightX, footerCenterY + 54);
 
-  // 8. VERY BOTTOM EDITORIAL LINE
-  const bottomLineY = cardY + cardH - 18;
+  // 9. BOTTOM EDITORIAL TAGLINE
+  const bottomLineY = cardY + cardH - 18; // 1446px
   ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
   ctx.font = "900 13px system-ui, sans-serif";
   ctx.textAlign = "center";
