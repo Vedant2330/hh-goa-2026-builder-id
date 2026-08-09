@@ -12,7 +12,7 @@ export interface RenderCardOptions {
 }
 
 /**
- * Renders the Format B Builder ID Card onto the canvas with micro-adjusted bottom credential panel geometry.
+ * Renders the Format B Builder ID Card onto the canvas with vertical rhythm spacing adjustments.
  * Canvas resolution: 1200px x 1500px (4:5 vertical ID ratio).
  */
 export async function renderBuilderCardCanvas({
@@ -183,10 +183,10 @@ export async function renderBuilderCardCanvas({
 
   ctx.restore();
 
-  // 6. BUILDER NAME + BUILDER TITLE BADGE
-  const infoStartY = photoY + photoSize + 50; // 785px
+  // 6. IDENTITY BLOCK WITH RESTRUCTURED VERTICAL RHYTHM & INTENTIONAL GAPS
 
-  // Builder Name (Warm Off-White `#FFF7E6`)
+  // Gap 1: Photo Outer Frame Bottom (747px) -> Builder Name Baseline (807px): ~24px gap above font cap height
+  const nameBaselineY = 807;
   const displayName = (name || "ANONYMOUS BUILDER").trim().toUpperCase();
   let nameFontSize = 48;
   ctx.font = `900 ${nameFontSize}px system-ui, -apple-system, 'Space Grotesk', sans-serif`;
@@ -197,11 +197,12 @@ export async function renderBuilderCardCanvas({
 
   ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
   ctx.textAlign = "center";
-  ctx.fillText(displayName, width / 2, infoStartY);
+  ctx.fillText(displayName, width / 2, nameBaselineY);
 
-  // Builder Title Badge Pill (Goa Magenta `#D62F73`)
+  // Gap 2: Builder Name -> Title Badge Pill (~18px gap)
+  // Pill top at 828px, pill center y at 852px, pill height 48px (bottom at 876px)
   const finalTitle = builderTitleOverride || generateBuilderTitle(stack, name);
-  const titleYPos = infoStartY + 47; // 832px
+  const pillCenterY = 852;
 
   ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
   const titleMetrics = ctx.measureText(finalTitle);
@@ -210,40 +211,42 @@ export async function renderBuilderCardCanvas({
   const pillX = (width - pillWidth) / 2;
 
   ctx.fillStyle = BRAND_CONFIG.colors.goaMagenta;
-  drawRoundedRect(ctx, pillX, titleYPos - 33, pillWidth, pillHeight, 24);
+  drawRoundedRect(ctx, pillX, pillCenterY - 24, pillWidth, pillHeight, 24);
   ctx.fill();
 
   ctx.strokeStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.lineWidth = 2;
-  drawRoundedRect(ctx, pillX, titleYPos - 33, pillWidth, pillHeight, 24);
+  drawRoundedRect(ctx, pillX, pillCenterY - 24, pillWidth, pillHeight, 24);
   ctx.stroke();
 
   ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
   ctx.font = "900 22px system-ui, -apple-system, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(finalTitle, width / 2, titleYPos);
+  ctx.fillText(finalTitle, width / 2, pillCenterY + 7);
 
-  // 7. STACK / ROLE BAR
-  const stackYPos = titleYPos + 58; // 890px
+  // Gap 3: Title Badge Pill Bottom (876px) -> Stack/Role Box Container Top (898px): ~22px gap
+  // Box top at 898px, height 48px (bottom at 946px), text baseline at 931px
+  const stackBoxTopY = 898;
   const displayStack = (stack || "Full-Stack Developer / AI Builder").trim();
 
   const stackBoxW = 880;
   const stackBoxH = 48;
   const stackBoxX = (width - stackBoxW) / 2; // 160px
+  const stackTextBaselineY = stackBoxTopY + 33; // 931px
 
   ctx.fillStyle = "rgba(7, 59, 41, 0.9)";
-  drawRoundedRect(ctx, stackBoxX, stackYPos - 33, stackBoxW, stackBoxH, 12);
+  drawRoundedRect(ctx, stackBoxX, stackBoxTopY, stackBoxW, stackBoxH, 12);
   ctx.fill();
 
   ctx.strokeStyle = BRAND_CONFIG.colors.jungleGreen;
   ctx.lineWidth = 1.5;
-  drawRoundedRect(ctx, stackBoxX, stackYPos - 33, stackBoxW, stackBoxH, 12);
+  drawRoundedRect(ctx, stackBoxX, stackBoxTopY, stackBoxW, stackBoxH, 12);
   ctx.stroke();
 
   ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.font = "900 14px system-ui, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText("STACK / ROLE:", stackBoxX + 24, stackYPos);
+  ctx.fillText("STACK / ROLE:", stackBoxX + 24, stackTextBaselineY);
 
   ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
   ctx.font = "600 16px system-ui, sans-serif";
@@ -256,11 +259,12 @@ export async function renderBuilderCardCanvas({
     }
     stackText += "...";
   }
-  ctx.fillText(stackText, stackBoxX + 164, stackYPos);
+  ctx.fillText(stackText, stackBoxX + 164, stackTextBaselineY);
 
-  // 8. LARGE BREATHING SPACE / GOA SUNSET ARTWORK (y: 915px to 1240px)
+  // 7. LARGE OPEN GOA ARTWORK / SUNSET BREATHING SPACE (y: 946px to 1240px)
+  // ~294px of open breathing space where the tropical landscape, ocean, sunset and palm trees remain unobstructed.
 
-  // 9. MICRO-ADJUSTED BOTTOM CREDENTIAL PANEL & CENTERED BARCODE (panelY: 1240px, panelH: 156px)
+  // 8. BOTTOM CREDENTIAL PANEL & CENTERED BARCODE (panelY: 1240px, panelH: 156px)
   const panelY = 1240;
   const panelH = 156;
   const panelW = cardW - 88; // 1048px
@@ -277,7 +281,7 @@ export async function renderBuilderCardCanvas({
   ctx.stroke();
 
   const idHash = Math.abs(simpleHash(displayName + displayStack) % 9000) + 1000;
-  const colBaselineY = panelY + 42; // 1282px -> text lines at 1290px, 1318px, 1344px
+  const colBaselineY = panelY + 42; // 1282px
 
   // LEFT COLUMN: BUILDER ID & BOUNTIES (Inward at x: 112px, left-aligned)
   const leftX = panelX + 36; // 112px
@@ -294,10 +298,10 @@ export async function renderBuilderCardCanvas({
   ctx.font = "bold 13px system-ui, sans-serif";
   ctx.fillText(BRAND_CONFIG.bountyTotal, leftX, colBaselineY + 62);
 
-  // CENTER COLUMN: BARCODE CONTAINER (~10% larger barcode: 296px x 56px inside 330px x 104px container)
+  // CENTER COLUMN: BARCODE CONTAINER & UNDISTORTED BARCODE
   const containerW = 330;
   const containerH = 104;
-  const containerX = (width - containerW) / 2; // 435px (Mathematically centered relative to panel)
+  const containerX = (width - containerW) / 2; // 435px
   const containerY = panelY + (panelH - containerH) / 2; // 1266px
 
   ctx.fillStyle = "rgba(6, 79, 50, 0.95)";
@@ -309,7 +313,7 @@ export async function renderBuilderCardCanvas({
   drawRoundedRect(ctx, containerX, containerY, containerW, containerH, 12);
   ctx.stroke();
 
-  // 10% Larger Undistorted Barcode (296px wide, 56px high, 17px padding)
+  // Undistorted Barcode (296px wide, 56px high)
   const barcodeW = 296;
   const barcodeH = 56;
   const barcodeDrawX = containerX + (containerW - barcodeW) / 2; // 452px
@@ -346,7 +350,7 @@ export async function renderBuilderCardCanvas({
   ctx.font = "bold 13px system-ui, sans-serif";
   ctx.fillText("GOA, INDIA", rightX, colBaselineY + 62);
 
-  // 10. BOTTOM EDITORIAL TAGLINE
+  // 9. BOTTOM EDITORIAL TAGLINE
   const bottomLineY = cardY + cardH - 18; // 1446px
   ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.font = "900 13px system-ui, sans-serif";
