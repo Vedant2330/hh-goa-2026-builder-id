@@ -8,24 +8,26 @@ export const BRAND_CONFIG = {
   bountyTotal: "₹46.5L IN BOUNTIES",
   colors: {
     // Primary Greens
-    primaryGreen: "#2F683E",
-    deepForest: "#123A27",
-    goaGreen: "#3C7A4E",
-    palmSage: "#61A167",
+    deepGoaGreen: "#064F32",
+    darkForestGreen: "#073B29",
+    jungleGreen: "#126B3A",
+    midGreen: "#1D7A45",
     
     // Accents
-    sunYellow: "#F1DB51",
-    goldenYellow: "#E9B91E",
-    goaPink: "#BF4173",
+    sunsetYellow: "#F6D928",
+    warmGoldenYellow: "#E8B91E",
+    goaMagenta: "#D62F73",
     
-    // Light & Muted
-    warmCream: "#FBF7E8",
-    softSage: "#DEEAE0",
-    textDark: "#1B2920",
+    // Highlight & Text
+    cream: "#F4E8C8",
+    warmOffWhite: "#FFF7E6",
+    textSecondary: "#D8D5BE",
+    textMuted: "#9EAF9F",
+    textDark: "#073B29",
     
-    // Transparency borders
-    borderYellow: "rgba(241, 219, 81, 0.4)",
-    borderCream: "rgba(251, 247, 232, 0.25)",
+    // Transparencies
+    borderYellow: "rgba(246, 217, 40, 0.35)",
+    borderCream: "rgba(244, 232, 200, 0.25)",
   },
 } as const;
 

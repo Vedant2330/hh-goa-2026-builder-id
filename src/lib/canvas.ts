@@ -12,7 +12,7 @@ export interface RenderCardOptions {
 }
 
 /**
- * Renders the Format B Builder ID Card onto the canvas with precision spacing and layout.
+ * Renders the Format B Builder ID Card onto the canvas with precision layout geometry.
  * Canvas resolution: 1200px x 1500px (4:5 vertical ID ratio).
  */
 export async function renderBuilderCardCanvas({
@@ -48,8 +48,8 @@ export async function renderBuilderCardCanvas({
   // Clear canvas
   ctx.clearRect(0, 0, width, height);
 
-  // 1. BASE BACKGROUND (Deep Forest `#123A27`)
-  ctx.fillStyle = BRAND_CONFIG.colors.deepForest;
+  // 1. BASE BACKGROUND (Dark Forest Green `#073B29`)
+  ctx.fillStyle = BRAND_CONFIG.colors.darkForestGreen;
   ctx.fillRect(0, 0, width, height);
 
   // 2. DRAW AUTHENTIC REFERENCE BACKGROUND ARTWORK IF LOADED
@@ -57,53 +57,53 @@ export async function renderBuilderCardCanvas({
     ctx.drawImage(bgArtwork, 0, 0, width, height);
   } else {
     const sunGlow = ctx.createRadialGradient(width / 2, 400, 40, width / 2, 400, 500);
-    sunGlow.addColorStop(0, "rgba(241, 219, 81, 0.3)");
-    sunGlow.addColorStop(0.7, "rgba(47, 104, 62, 0.2)");
-    sunGlow.addColorStop(1, "rgba(18, 58, 39, 0)");
+    sunGlow.addColorStop(0, "rgba(246, 217, 40, 0.3)");
+    sunGlow.addColorStop(0.7, "rgba(7, 59, 41, 0.2)");
+    sunGlow.addColorStop(1, "rgba(7, 59, 41, 0)");
     ctx.fillStyle = sunGlow;
     ctx.fillRect(0, 0, width, height);
   }
 
   // Subtle dark-green gradient overlay for header and photo contrast
   const topOverlay = ctx.createLinearGradient(0, 0, 0, 1050);
-  topOverlay.addColorStop(0, "rgba(18, 58, 39, 0.35)");
-  topOverlay.addColorStop(0.7, "rgba(18, 58, 39, 0.1)");
-  topOverlay.addColorStop(1, "rgba(18, 58, 39, 0)");
+  topOverlay.addColorStop(0, "rgba(7, 59, 41, 0.35)");
+  topOverlay.addColorStop(0.7, "rgba(7, 59, 41, 0.1)");
+  topOverlay.addColorStop(1, "rgba(7, 59, 41, 0)");
   ctx.fillStyle = topOverlay;
   ctx.fillRect(0, 0, width, 1050);
 
-  // 3. CARD OUTER DOUBLE BORDER FRAME
-  const cardMargin = 36;
-  const cardW = width - cardMargin * 2; // 1128px
-  const cardH = height - cardMargin * 2; // 1428px
+  // 3. CARD OUTER DOUBLE BORDER FRAME (32px margin from canvas edge)
+  const cardMargin = 32;
+  const cardW = width - cardMargin * 2; // 1136px
+  const cardH = height - cardMargin * 2; // 1436px
   const cardX = cardMargin;
   const cardY = cardMargin;
   const cardRadius = 36;
 
-  // Outer Border Stroke (Sun Yellow `#F1DB51`)
-  ctx.strokeStyle = BRAND_CONFIG.colors.sunYellow;
+  // Outer Border Stroke (Sunset Yellow `#F6D928`)
+  ctx.strokeStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.lineWidth = 6;
   drawRoundedRect(ctx, cardX, cardY, cardW, cardH, cardRadius);
   ctx.stroke();
 
   // Inner Cream Accent Border Line
-  ctx.strokeStyle = "rgba(251, 247, 232, 0.35)";
+  ctx.strokeStyle = "rgba(244, 232, 200, 0.35)";
   ctx.lineWidth = 2;
   drawRoundedRect(ctx, cardX + 8, cardY + 8, cardW - 16, cardH - 16, cardRadius - 8);
   ctx.stroke();
 
-  // 4. TOP HEADER SECTION (Precision Vertical Rhythm)
-  const headerY = cardY + 48; // 84px
+  // 4. TOP HEADER SECTION (Structured Spacing)
+  const headerY = cardY + 44; // 76px
 
   // Status Badge (Top Left Pill)
-  const statusX = cardX + 50; // 86px
+  const statusX = cardX + 44; // 76px
   const statusY = headerY;
-  ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
+  ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
   drawRoundedRect(ctx, statusX, statusY, 210, 36, 18);
   ctx.fill();
 
   // Active Green Dot
-  ctx.fillStyle = BRAND_CONFIG.colors.deepForest;
+  ctx.fillStyle = BRAND_CONFIG.colors.darkForestGreen;
   ctx.beginPath();
   ctx.arc(statusX + 18, statusY + 18, 5, 0, Math.PI * 2);
   ctx.fill();
@@ -114,39 +114,39 @@ export async function renderBuilderCardCanvas({
   ctx.fillText("OFFICIAL BUILDER PASS", statusX + 32, statusY + 22);
 
   // Top Right Organizer Mark
-  const rightHeaderX = cardX + cardW - 50; // 1114px
-  ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
+  const rightHeaderX = cardX + cardW - 44; // 1124px
+  ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
   ctx.font = "bold 14px system-ui, sans-serif";
   ctx.textAlign = "right";
   ctx.fillText(BRAND_CONFIG.organizer, rightHeaderX, statusY + 22);
 
   // Event Headline: "HACKER HOUSE GOA 2026"
-  const titleY = headerY + 75; // 159px -> text baseline at 180px
-  ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
+  const titleY = headerY + 75; // 151px -> baseline 175px
+  ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
   ctx.font = "900 46px system-ui, -apple-system, 'Space Grotesk', sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(BRAND_CONFIG.eventName, width / 2, titleY);
 
-  // Subtitle: "BUILDER RESIDENCY · GOA, INDIA"
-  const subtitleY = titleY + 34; // 214px
-  ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
+  // Subtitle: "BUILDER RESIDENCY • GOA, INDIA"
+  const subtitleY = titleY + 35; // 210px
+  ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.font = "bold 16px system-ui, -apple-system, sans-serif";
-  ctx.fillText(`${BRAND_CONFIG.eventTag} · ${BRAND_CONFIG.location}`, width / 2, subtitleY);
+  ctx.fillText(`${BRAND_CONFIG.eventTag} • ${BRAND_CONFIG.location}`, width / 2, subtitleY);
 
-  // 5. PROFILE PHOTO MODULE
-  const photoSize = 480;
-  const photoX = (width - photoSize) / 2; // 360px
+  // 5. PROFILE PHOTO MODULE (Deliberate visual gap from subtitle)
+  const photoSize = 470;
+  const photoX = (width - photoSize) / 2; // 365px
   const photoY = 265;
   const photoRadius = 24;
 
-  // Photo Outer Frame (Warm Cream & Sun Yellow)
-  ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
-  drawRoundedRect(ctx, photoX - 8, photoY - 8, photoSize + 16, photoSize + 16, photoRadius + 6);
+  // Photo Outer Frame (Cream & Sunset Yellow)
+  ctx.fillStyle = BRAND_CONFIG.colors.cream;
+  drawRoundedRect(ctx, photoX - 8, photoY - 8, photoSize + 16, photoSize + 16, photoRadius + 5);
   ctx.fill();
 
-  ctx.strokeStyle = BRAND_CONFIG.colors.sunYellow;
+  ctx.strokeStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.lineWidth = 3;
-  drawRoundedRect(ctx, photoX - 12, photoY - 12, photoSize + 24, photoSize + 24, photoRadius + 8);
+  drawRoundedRect(ctx, photoX - 12, photoY - 12, photoSize + 24, photoSize + 24, photoRadius + 7);
   ctx.stroke();
 
   // Draw User Photo (Masked)
@@ -164,16 +164,16 @@ export async function renderBuilderCardCanvas({
     );
     ctx.drawImage(userImage, photoX + rect.x, photoY + rect.y, rect.width, rect.height);
   } else {
-    ctx.fillStyle = BRAND_CONFIG.colors.deepForest;
+    ctx.fillStyle = BRAND_CONFIG.colors.darkForestGreen;
     ctx.fillRect(photoX, photoY, photoSize, photoSize);
 
-    ctx.fillStyle = BRAND_CONFIG.colors.palmSage;
+    ctx.fillStyle = BRAND_CONFIG.colors.midGreen;
     ctx.font = "bold 20px system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("YOUR PHOTO HERE", photoX + photoSize / 2, photoY + photoSize / 2);
   }
 
-  // Subtle Edge Vignette
+  // Edge Vignette
   const photoVignette = ctx.createLinearGradient(photoX, photoY, photoX, photoY + photoSize);
   photoVignette.addColorStop(0, "rgba(0, 0, 0, 0.12)");
   photoVignette.addColorStop(0.8, "rgba(0, 0, 0, 0)");
@@ -183,10 +183,10 @@ export async function renderBuilderCardCanvas({
 
   ctx.restore();
 
-  // 6. IDENTITY BLOCK: NAME → TITLE BADGE → STACK/ROLE BAR
-  const infoStartY = photoY + photoSize + 52; // 797px
+  // 6. BUILDER NAME + BUILDER TITLE BADGE
+  const infoStartY = photoY + photoSize + 50; // 785px
 
-  // Builder Name (Warm Cream `#FBF7E8`)
+  // Builder Name (Warm Off-White `#FFF7E6`)
   const displayName = (name || "ANONYMOUS BUILDER").trim().toUpperCase();
   let nameFontSize = 48;
   ctx.font = `900 ${nameFontSize}px system-ui, -apple-system, 'Space Grotesk', sans-serif`;
@@ -195,13 +195,13 @@ export async function renderBuilderCardCanvas({
     ctx.font = `900 ${nameFontSize}px system-ui, -apple-system, 'Space Grotesk', sans-serif`;
   }
 
-  ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
+  ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
   ctx.textAlign = "center";
   ctx.fillText(displayName, width / 2, infoStartY);
 
-  // Builder Title Badge Pill (Goa Pink `#BF4173`)
+  // Builder Title Badge Pill (Goa Magenta `#D62F73`)
   const finalTitle = builderTitleOverride || generateBuilderTitle(stack, name);
-  const titleYPos = infoStartY + 46; // 843px
+  const titleYPos = infoStartY + 47; // 832px
 
   ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
   const titleMetrics = ctx.measureText(finalTitle);
@@ -209,43 +209,43 @@ export async function renderBuilderCardCanvas({
   const pillHeight = 48;
   const pillX = (width - pillWidth) / 2;
 
-  ctx.fillStyle = BRAND_CONFIG.colors.goaPink;
+  ctx.fillStyle = BRAND_CONFIG.colors.goaMagenta;
   drawRoundedRect(ctx, pillX, titleYPos - 33, pillWidth, pillHeight, 24);
   ctx.fill();
 
-  ctx.strokeStyle = BRAND_CONFIG.colors.sunYellow;
+  ctx.strokeStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.lineWidth = 2;
   drawRoundedRect(ctx, pillX, titleYPos - 33, pillWidth, pillHeight, 24);
   ctx.stroke();
 
-  ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
+  ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
   ctx.font = "900 22px system-ui, -apple-system, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(finalTitle, width / 2, titleYPos);
 
-  // Stack / Role Field Box
-  const stackYPos = titleYPos + 58; // 901px
+  // 7. STACK / ROLE BAR
+  const stackYPos = titleYPos + 58; // 890px
   const displayStack = (stack || "Full-Stack Developer / AI Builder").trim();
 
   const stackBoxW = 880;
   const stackBoxH = 48;
   const stackBoxX = (width - stackBoxW) / 2; // 160px
 
-  ctx.fillStyle = "rgba(18, 58, 39, 0.88)";
+  ctx.fillStyle = "rgba(7, 59, 41, 0.9)";
   drawRoundedRect(ctx, stackBoxX, stackYPos - 33, stackBoxW, stackBoxH, 12);
   ctx.fill();
 
-  ctx.strokeStyle = BRAND_CONFIG.colors.palmSage;
+  ctx.strokeStyle = BRAND_CONFIG.colors.jungleGreen;
   ctx.lineWidth = 1.5;
   drawRoundedRect(ctx, stackBoxX, stackYPos - 33, stackBoxW, stackBoxH, 12);
   ctx.stroke();
 
-  ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
+  ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.font = "900 14px system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText("STACK / ROLE:", stackBoxX + 24, stackYPos);
 
-  ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
+  ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
   ctx.font = "600 16px system-ui, sans-serif";
 
   let stackText = displayStack;
@@ -258,66 +258,66 @@ export async function renderBuilderCardCanvas({
   }
   ctx.fillText(stackText, stackBoxX + 164, stackYPos);
 
-  // 7. OPEN ARTWORK & TRANSITION AREA (y: 925px to 1245px)
-  // The tropical Goa beach, sunset, ocean, and palm trees remain visible in this breathing room.
+  // 8. LARGE BREATHING SPACE / GOA SUNSET ARTWORK (y: 915px to 1238px)
+  // The tropical landscape, sunset, ocean, beach and palm trees remain unobstructed here.
 
-  // 8. PROFESSIONAL THREE-COLUMN FOOTER INFORMATION SYSTEM (y: 1245px to 1420px)
-  const footerBandY = 1245;
-  const footerBandW = cardW - 80; // 1048px
-  const footerBandH = 175;
-  const footerBandX = cardX + 40; // 76px
+  // 9. BOTTOM INFORMATION PANEL (y: 1238px to 1418px)
+  const footerPanelY = 1238;
+  const footerPanelW = cardW - 88; // 1048px
+  const footerPanelH = 180;
+  const footerPanelX = (width - footerPanelW) / 2; // 76px
 
-  // Translucent Dark Forest Footer Container
-  ctx.fillStyle = "rgba(11, 40, 26, 0.88)";
-  drawRoundedRect(ctx, footerBandX, footerBandY, footerBandW, footerBandH, 20);
+  // Translucent Dark Forest Panel Container
+  ctx.fillStyle = "rgba(7, 59, 41, 0.9)";
+  drawRoundedRect(ctx, footerPanelX, footerPanelY, footerPanelW, footerPanelH, 22);
   ctx.fill();
 
-  ctx.strokeStyle = "rgba(241, 219, 81, 0.35)";
+  ctx.strokeStyle = "rgba(246, 217, 40, 0.35)";
   ctx.lineWidth = 1.5;
-  drawRoundedRect(ctx, footerBandX, footerBandY, footerBandW, footerBandH, 20);
+  drawRoundedRect(ctx, footerPanelX, footerPanelY, footerPanelW, footerPanelH, 22);
   ctx.stroke();
 
   const idHash = Math.abs(simpleHash(displayName + displayStack) % 9000) + 1000;
-  const footerCenterY = footerBandY + 45; // 1290px
+  const footerCenterY = footerPanelY + 45; // 1283px
 
   // LEFT COLUMN: BUILDER ID & BOUNTIES (x: 108px, left-aligned)
-  const leftX = footerBandX + 32;
-  ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
+  const leftX = footerPanelX + 32;
+  ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.font = "900 12px system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText("BUILDER ID", leftX, footerCenterY);
 
-  ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
+  ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
   ctx.font = "bold 22px monospace";
   ctx.fillText(`HHG26-${idHash}`, leftX, footerCenterY + 28);
 
-  ctx.fillStyle = BRAND_CONFIG.colors.palmSage;
+  ctx.fillStyle = BRAND_CONFIG.colors.midGreen;
   ctx.font = "bold 13px system-ui, sans-serif";
   ctx.fillText(BRAND_CONFIG.bountyTotal, leftX, footerCenterY + 54);
 
-  // CENTER COLUMN: BARCODE CONTAINER & HIGH-CONTRAST BARCODE
+  // CENTER COLUMN: DEDICATED BARCODE CONTAINER (Centered at x: 600px)
   const bContainerW = 340;
-  const bContainerH = 92;
+  const bContainerH = 96;
   const bContainerX = (width - bContainerW) / 2; // 430px
-  const bContainerY = footerBandY + 18; // 1263px
+  const bContainerY = footerPanelY + 16; // 1254px
 
-  // Subtle Dark Container inside footer for Barcode
-  ctx.fillStyle = "rgba(18, 58, 39, 0.92)";
+  // Dedicated Barcode Dark Container
+  ctx.fillStyle = "rgba(6, 79, 50, 0.95)";
   drawRoundedRect(ctx, bContainerX, bContainerY, bContainerW, bContainerH, 12);
   ctx.fill();
 
-  ctx.strokeStyle = "rgba(241, 219, 81, 0.25)";
+  ctx.strokeStyle = "rgba(246, 217, 40, 0.25)";
   ctx.lineWidth = 1;
   drawRoundedRect(ctx, bContainerX, bContainerY, bContainerW, bContainerH, 12);
   ctx.stroke();
 
-  // High-Contrast Barcode Bars (Warm Cream `#FBF7E8`)
-  const barcodeW = 304;
-  const barcodeH = 46;
-  const barcodeDrawX = bContainerX + (bContainerW - barcodeW) / 2; // 448px
-  const barcodeDrawY = bContainerY + 12; // 1275px
+  // High-Contrast Barcode Bars (Warm Off-White `#FFF7E6`, occupies 70% width)
+  const barcodeW = 300;
+  const barcodeH = 50;
+  const barcodeDrawX = bContainerX + (bContainerW - barcodeW) / 2; // 450px
+  const barcodeDrawY = bContainerY + 10; // 1264px
 
-  ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
+  ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
   const barPattern = [
     4, 2, 5, 2, 3, 5, 2, 4, 2, 6, 3, 2, 4, 2, 5, 3, 5, 2, 3, 5, 2, 4, 2, 6, 3, 2, 4, 2, 5, 3, 4, 2
   ];
@@ -327,30 +327,30 @@ export async function renderBuilderCardCanvas({
     currentBarX += bw + 4.5;
   }
 
-  // Barcode Identifier Text (Clean monospace directly under barcode)
-  ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
+  // Barcode Identifier Label (Centered directly below barcode inside container)
+  ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.font = "bold 12px monospace";
   ctx.textAlign = "center";
-  ctx.fillText(`HHG26-${idHash}`, width / 2, bContainerY + bContainerH - 10);
+  ctx.fillText(`HHG26-${idHash}`, width / 2, bContainerY + bContainerH - 8);
 
   // RIGHT COLUMN: HASHTAG & LOCATION (x: 1092px, right-aligned)
-  const rightX = footerBandX + footerBandW - 32;
-  ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
+  const rightX = footerPanelX + footerPanelW - 32;
+  ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.font = "900 22px system-ui, sans-serif";
   ctx.textAlign = "right";
   ctx.fillText(BRAND_CONFIG.hashtag, rightX, footerCenterY);
 
-  ctx.fillStyle = BRAND_CONFIG.colors.softSage;
+  ctx.fillStyle = BRAND_CONFIG.colors.textSecondary;
   ctx.font = "13px system-ui, sans-serif";
   ctx.fillText("247 SELECTED BUILDERS", rightX, footerCenterY + 28);
 
-  ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
+  ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
   ctx.font = "bold 13px system-ui, sans-serif";
   ctx.fillText("GOA, INDIA", rightX, footerCenterY + 54);
 
-  // 9. BOTTOM EDITORIAL TAGLINE
-  const bottomLineY = cardY + cardH - 18; // 1446px
-  ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
+  // 10. BOTTOM EDITORIAL TAGLINE
+  const bottomLineY = cardY + cardH - 18; // 1450px
+  ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
   ctx.font = "900 13px system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText("BUILD • CODE • CHILL • REPEAT", width / 2, bottomLineY);
