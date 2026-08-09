@@ -8,7 +8,6 @@ interface SharePageProps {
 export async function generateMetadata({ params }: SharePageProps): Promise<Metadata> {
   const { id } = await params;
   
-  // Base origin resolution
   const baseUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000";
@@ -69,26 +68,24 @@ export default async function SharePage({ params }: SharePageProps) {
   )}`;
 
   return (
-    <div className="min-h-screen bg-[#070A0F] text-white flex flex-col items-center justify-between p-4 md:p-8 font-sans selection:bg-[#00F2FE] selection:text-black">
+    <div className="min-h-screen bg-[#123A27] text-[#FBF7E8] flex flex-col items-center justify-between p-4 md:p-8 font-sans selection:bg-[#F1DB51] selection:text-[#123A27]">
       {/* Background ambient lighting */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#00F2FE]/15 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#FF9966]/15 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#2F683E]/60 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-[#BF4173]/20 rounded-full blur-[120px]" />
       </div>
 
       {/* Header */}
-      <header className="w-full max-w-4xl mx-auto flex items-center justify-between py-4 border-b border-white/10 z-10">
+      <header className="w-full max-w-4xl mx-auto flex items-center justify-between py-4 border-b border-[#FBF7E8]/15 z-10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#00F2FE] to-[#FF9966] p-[2px]">
-            <div className="w-full h-full bg-[#0E1526] rounded-[10px] flex items-center justify-center font-black text-[#00F2FE] text-lg">
-              HH
-            </div>
+          <div className="w-10 h-10 rounded-xl bg-[#F1DB51] text-[#123A27] flex items-center justify-center font-black text-xl shadow-md">
+            HH
           </div>
           <div>
-            <h1 className="font-extrabold tracking-tight text-lg leading-tight">
+            <h1 className="font-extrabold tracking-tight text-lg leading-tight text-[#FBF7E8]">
               {BRAND_CONFIG.eventName}
             </h1>
-            <p className="text-xs text-slate-400 font-mono">
+            <p className="text-xs text-[#DEEAE0] font-mono">
               {BRAND_CONFIG.eventTag} • {BRAND_CONFIG.organizer}
             </p>
           </div>
@@ -96,7 +93,7 @@ export default async function SharePage({ params }: SharePageProps) {
 
         <a
           href="/"
-          className="px-4 py-2 text-xs font-bold bg-white/10 hover:bg-white/20 text-white rounded-lg transition border border-white/15"
+          className="px-4 py-2 text-xs font-black bg-[#F1DB51] hover:bg-[#E9B91E] text-[#123A27] rounded-xl transition shadow-md"
         >
           Build Yours +
         </a>
@@ -105,20 +102,20 @@ export default async function SharePage({ params }: SharePageProps) {
       {/* Main Content */}
       <main className="w-full max-w-md my-8 flex flex-col items-center z-10 space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00FF87]/10 border border-[#00FF87]/30 text-[#00FF87] text-xs font-semibold">
-            <span className="w-2 h-2 rounded-full bg-[#00FF87] animate-pulse"></span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F1DB51]/20 border border-[#F1DB51]/40 text-[#F1DB51] text-xs font-bold">
+            <span className="w-2 h-2 rounded-full bg-[#F1DB51] animate-pulse"></span>
             Verified Builder Pass
           </div>
-          <h2 className="text-2xl font-black text-white">
+          <h2 className="text-2xl font-black text-[#FBF7E8]">
             HH Goa 2026 Builder ID
           </h2>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-[#DEEAE0]">
             Official pass generated for Hacker House Goa 2026
           </p>
         </div>
 
         {/* Card Graphic View */}
-        <div className="relative w-full aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl border-2 border-[#00F2FE]/40 bg-[#0E1526]">
+        <div className="relative w-full aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl border-4 border-[#F1DB51] bg-[#123A27]">
           {/* eslint-disable-next-html-element-suppress */}
           <img
             src={imageUrl}
@@ -133,7 +130,7 @@ export default async function SharePage({ params }: SharePageProps) {
             href={tweetIntentUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-bold bg-[#00F2FE] hover:bg-[#38BDF8] text-black transition shadow-lg shadow-[#00F2FE]/20"
+            className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl font-black bg-[#F1DB51] hover:bg-[#E9B91E] text-[#123A27] transition shadow-lg"
           >
             <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -145,13 +142,13 @@ export default async function SharePage({ params }: SharePageProps) {
             <a
               href={imageUrl}
               download="HH_Goa_2026_Builder_ID.png"
-              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold bg-white/10 hover:bg-white/15 border border-white/15 text-white transition text-sm"
+              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold bg-[#2F683E] hover:bg-[#3C7A4E] border border-[#FBF7E8]/15 text-[#FBF7E8] transition text-sm"
             >
               📥 Download PNG
             </a>
             <a
               href="/"
-              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold bg-gradient-to-r from-[#FF9966]/20 to-[#FF5E62]/20 hover:from-[#FF9966]/30 hover:to-[#FF5E62]/30 border border-[#FF9966]/40 text-[#FF9966] transition text-sm"
+              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold bg-[#BF4173] hover:bg-[#A3345E] text-[#FBF7E8] transition text-sm border border-[#F1DB51]/30"
             >
               ✨ Make Yours
             </a>
@@ -160,7 +157,7 @@ export default async function SharePage({ params }: SharePageProps) {
       </main>
 
       {/* Footer */}
-      <footer className="w-full max-w-4xl mx-auto text-center py-4 border-t border-white/10 text-xs text-slate-500 font-mono z-10">
+      <footer className="w-full max-w-4xl mx-auto text-center py-4 border-t border-[#FBF7E8]/15 text-xs text-[#DEEAE0] font-mono z-10">
         HH GOA 2026 • 2:47 PM STUDIO • GOA, INDIA
       </footer>
     </div>

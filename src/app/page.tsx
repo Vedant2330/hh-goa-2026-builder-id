@@ -11,27 +11,31 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function GeneratorPage() {
-  // Input states
+  // Form Input states
   const [name, setName] = useState<string>("Satoshi Nakamoto");
   const [stack, setStack] = useState<string>("Next.js • Solana • AI");
   const [builderTitle, setBuilderTitle] = useState<string>("");
   const [titleOverride, setTitleOverride] = useState<string | null>(null);
 
-  // Image & Adjustment states
+  // In-Memory Processed Image (Uploaded once, retained in client memory for instant renders)
   const [userImage, setUserImage] = useState<HTMLImageElement | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState<boolean>(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(DEFAULT_ADJUSTMENTS);
   const [showAdjustments, setShowAdjustments] = useState<boolean>(false);
 
+  // Background artwork element for canvas
+  const [bgArtwork, setBgArtwork] = useState<HTMLImageElement | null>(null);
+
   // Sharing states
   const [isSharing, setIsSharing] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [shareSuccessUrl, setShareSuccessUrl] = useState<string | null>(null);
 
-  // Canvas ref
+  // Canvas & Input refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const generatorRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-generate title whenever stack/name change (unless overridden manually)
   useEffect(() => {
@@ -43,31 +47,32 @@ export default function GeneratorPage() {
     }
   }, [stack, name, titleOverride]);
 
-  // Load a default avatar placeholder for initial presentation
+  // Load default retro placeholder avatar and tropical background artwork on initial mount
   useEffect(() => {
+    // 1. Default Avatar Placeholder
     const defaultImg = new Image();
     defaultImg.crossOrigin = "anonymous";
     defaultImg.onload = () => setUserImage(defaultImg);
-    // Dark cyber profile avatar placeholder
     defaultImg.src =
       "data:image/svg+xml;utf8," +
       encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500">
-        <defs>
-          <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#00F2FE"/>
-            <stop offset="100%" stop-color="#FF9966"/>
-          </linearGradient>
-        </defs>
-        <rect width="500" height="500" fill="#131B2E"/>
-        <circle cx="250" cy="210" r="90" fill="url(#bg)" opacity="0.8"/>
-        <path d="M100 450 C 100 320, 400 320, 400 450 Z" fill="url(#bg)" opacity="0.8"/>
-        <text x="250" y="470" font-family="sans-serif" font-size="20" font-weight="bold" fill="#00F2FE" text-anchor="middle">HH GOA BUILDER</text>
+        <rect width="500" height="500" fill="#123A27"/>
+        <circle cx="250" cy="250" r="220" fill="#2F683E"/>
+        <circle cx="250" cy="200" r="85" fill="#F1DB51"/>
+        <path d="M110 440 C 110 320, 390 320, 390 440 Z" fill="#F1DB51"/>
+        <text x="250" y="470" font-family="sans-serif" font-size="20" font-weight="900" fill="#FBF7E8" text-anchor="middle">HH GOA BUILDER</text>
       </svg>
     `);
+
+    // 2. Background Tropical Artwork
+    const bgImg = new Image();
+    bgImg.crossOrigin = "anonymous";
+    bgImg.onload = () => setBgArtwork(bgImg);
+    bgImg.src = "/assets/tropical_goa_bg.png";
   }, []);
 
-  // Re-render canvas whenever relevant states change
+  // Instant client-side canvas render (Redraws in 0ms without server calls or page reload)
   const triggerRender = useCallback(async () => {
     if (!canvasRef.current) return;
     await renderBuilderCardCanvas({
@@ -77,27 +82,28 @@ export default function GeneratorPage() {
       stack,
       builderTitleOverride: builderTitle,
       adjustments,
+      bgArtwork,
     });
-  }, [userImage, name, stack, builderTitle, adjustments]);
+  }, [userImage, name, stack, builderTitle, adjustments, bgArtwork]);
 
   useEffect(() => {
     triggerRender();
   }, [triggerRender]);
 
-  // File Upload Handler
+  // Photo Upload Handler (Processed ONCE, kept in memory for all future edits)
   const handleFileSelect = async (file: File) => {
     if (!file) return;
     setIsProcessingImage(true);
     setImageError(null);
 
     try {
-      // 1. HEIC conversion if needed
+      // 1. Client-side HEIC conversion if needed
       const convertedBlob = await convertHeicIfNeeded(file);
 
-      // 2. Downscale immediately (max 2000px)
+      // 2. Immediate downscaling (max 2000px)
       const processedImg = await processAndDownscaleImage(convertedBlob, 2000);
 
-      // Reset adjustments on new photo load
+      // Reset crop adjustments & store processed image in memory
       setAdjustments(DEFAULT_ADJUSTMENTS);
       setUserImage(processedImg);
     } catch (err: unknown) {
@@ -105,7 +111,7 @@ export default function GeneratorPage() {
       setImageError(
         err instanceof Error
           ? err.message
-          : "Failed to process photo. Please try a standard JPG/PNG file."
+          : "Failed to process photo. Please try a standard JPG or PNG photo."
       );
     } finally {
       setIsProcessingImage(false);
@@ -165,7 +171,6 @@ export default function GeneratorPage() {
     setShareSuccessUrl(null);
 
     try {
-      // Get canvas PNG blob
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, "image/png", 1.0)
       );
@@ -178,7 +183,7 @@ export default function GeneratorPage() {
 
       const caption = `Just built my HH Goa 2026 Builder ID 🚀 ${BRAND_CONFIG.hashtag} @247pmstudio`;
 
-      // 1. PRIMARY PATH: Native Web Share API (Mobile Safari / Android Chrome)
+      // Web Share API Primary Path
       if (
         typeof navigator !== "undefined" &&
         navigator.canShare &&
@@ -193,19 +198,14 @@ export default function GeneratorPage() {
           setIsSharing(false);
           return;
         } catch (shareErr) {
-          // If user cancels share dialog, exit gracefully
-          if (
-            shareErr instanceof Error &&
-            shareErr.name === "AbortError"
-          ) {
+          if (shareErr instanceof Error && shareErr.name === "AbortError") {
             setIsSharing(false);
             return;
           }
-          console.warn("Web Share failed, falling back to desktop link path:", shareErr);
         }
       }
 
-      // 2. FALLBACK PATH: Upload to /api/share -> Unique /s/[id] page -> X Intent
+      // Desktop Fallback: Upload to /api/share -> Unique /s/[id] page
       const formData = new FormData();
       formData.append("file", file);
 
@@ -221,10 +221,7 @@ export default function GeneratorPage() {
 
       setShareSuccessUrl(data.shareUrl);
 
-      // Open X Tweet Intent in new window
-      const tweetText = encodeURIComponent(
-        `Just built my HH Goa 2026 Builder ID 🚀 ${BRAND_CONFIG.hashtag} @247pmstudio`
-      );
+      const tweetText = encodeURIComponent(caption);
       const tweetIntentUrl = `https://twitter.com/intent/tweet?text=${tweetText}&url=${encodeURIComponent(
         data.shareUrl
       )}`;
@@ -249,345 +246,378 @@ export default function GeneratorPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const scrollToGenerator = () => {
+    generatorRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
-    <div className="min-h-screen bg-[#070A0F] text-slate-100 font-sans selection:bg-[#00F2FE] selection:text-black">
-      {/* Glow Backdrop */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#00F2FE]/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-[#FF9966]/10 rounded-full blur-[120px]" />
+    <div className="min-h-screen bg-[#123A27] text-[#FBF7E8] font-sans selection:bg-[#F1DB51] selection:text-[#123A27]">
+      {/* Background Retro Tropical Imagery & Grain */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-[#2F683E]/60 rounded-full blur-[140px]" />
+        <div className="absolute bottom-0 left-0 right-0 h-[400px] bg-gradient-to-t from-[#0B281A] to-transparent opacity-80" />
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 py-6 md:py-10 flex flex-col min-h-screen">
-        {/* Navbar Header */}
-        <header className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-8 border-b border-white/10 mb-8">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 py-6 md:py-8 flex flex-col min-h-screen">
+        {/* Navigation Bar */}
+        <header className="flex items-center justify-between py-4 border-b border-[#FBF7E8]/15 mb-8">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#00F2FE] via-[#4FACFE] to-[#FF9966] p-[2px] shadow-lg shadow-[#00F2FE]/20">
-              <div className="w-full h-full bg-[#0E1526] rounded-[14px] flex items-center justify-center font-black text-[#00F2FE] text-xl">
-                HH
-              </div>
+            <div className="w-10 h-10 rounded-xl bg-[#F1DB51] text-[#123A27] flex items-center justify-center font-black text-xl shadow-md">
+              HH
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-extrabold text-xl sm:text-2xl tracking-tight text-white">
-                  {BRAND_CONFIG.eventName}
-                </h1>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00FF87]/15 text-[#00FF87] border border-[#00FF87]/30">
-                  {BRAND_CONFIG.bountyTotal}
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 font-mono">
-                {BRAND_CONFIG.eventTag} • {BRAND_CONFIG.organizer} • {BRAND_CONFIG.location}
+              <h1 className="font-black text-lg md:text-xl tracking-tight text-[#FBF7E8] leading-tight">
+                {BRAND_CONFIG.eventName}
+              </h1>
+              <p className="text-xs text-[#DEEAE0] font-mono">
+                {BRAND_CONFIG.eventTag} • {BRAND_CONFIG.organizer}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs font-mono px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-300">
+            <span className="hidden sm:inline-block text-xs font-mono px-3 py-1.5 rounded-lg bg-[#2F683E] border border-[#F1DB51]/30 text-[#F1DB51]">
               {BRAND_CONFIG.hashtag}
             </span>
+            <button
+              onClick={scrollToGenerator}
+              className="px-4 py-2 text-xs font-black bg-[#F1DB51] hover:bg-[#E9B91E] text-[#123A27] rounded-xl transition shadow-md"
+            >
+              GENERATE YOUR ID
+            </button>
           </div>
         </header>
 
-        {/* Main Grid: Controls Left, Live Canvas Right */}
-        <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start flex-grow">
-          {/* LEFT COLUMN: Controls & Form */}
-          <div className="lg:col-span-6 space-y-6">
-            {/* Title / Intro */}
-            <div>
-              <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#00F2FE] mb-1">
-                Format B • Official Builder Pass
-              </span>
-              <h2 className="text-3xl font-black tracking-tight text-white">
-                Generate Your HH Goa Builder ID
-              </h2>
-              <p className="text-sm text-slate-400 mt-1">
-                Upload your photo, set your role & tech stack. Instant client-side render in seconds.
-              </p>
-            </div>
+        {/* EDITORIAL HERO SECTION */}
+        <section className="text-center py-10 md:py-16 max-w-3xl mx-auto space-y-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#BF4173]/20 border border-[#BF4173]/40 text-[#FBF7E8] text-xs font-bold uppercase tracking-widest">
+            <span className="w-2 h-2 rounded-full bg-[#F1DB51] animate-pulse" />
+            {BRAND_CONFIG.eventTag} • {BRAND_CONFIG.bountyTotal}
+          </div>
 
-            {/* Step 1: Photo Upload Box */}
-            <div className="p-5 rounded-2xl bg-[#0E1526]/80 border border-white/10 space-y-4 backdrop-blur-md">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-slate-200 flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#00F2FE]/20 text-[#00F2FE] text-xs flex items-center justify-center font-mono">
-                    1
-                  </span>
-                  Upload Your Photo
-                </label>
-                <span className="text-xs text-slate-400 font-mono">JPG, PNG, HEIC</span>
+          <h2 className="text-4xl md:text-6xl font-black tracking-tight text-[#FBF7E8] leading-[1.1]">
+            YOUR JOURNEY. <br />
+            <span className="text-[#F1DB51]">YOUR IDENTITY.</span>
+          </h2>
+
+          <p className="text-base md:text-lg text-[#DEEAE0] max-w-xl mx-auto font-medium leading-relaxed">
+            Create your official Hacker House Goa 2026 Builder ID. Upload your photo, customize your identity, and share your pass with the world.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+            <button
+              onClick={scrollToGenerator}
+              className="w-full sm:w-auto py-4 px-8 rounded-2xl font-black text-base bg-[#F1DB51] hover:bg-[#E9B91E] text-[#123A27] shadow-xl transition active:scale-[0.99] flex items-center justify-center gap-2"
+            >
+              <span>🌴</span> START BUILDING YOUR ID
+            </button>
+          </div>
+
+          <div className="flex items-center justify-center gap-6 pt-4 text-xs font-mono text-[#DEEAE0]/80">
+            <span>✓ Instant Generation</span>
+            <span>•</span>
+            <span>✓ High-Quality PNG</span>
+            <span>•</span>
+            <span>✓ Share to X</span>
+          </div>
+        </section>
+
+        {/* GENERATOR WORKSPACE SECTION */}
+        <div ref={generatorRef} className="pt-8">
+          <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* LEFT COLUMN: Controls */}
+            <div className="lg:col-span-6 space-y-6">
+              <div className="border-b border-[#FBF7E8]/10 pb-3">
+                <span className="text-xs font-bold uppercase tracking-widest text-[#F1DB51]">
+                  FORMAT B • BUILDER ID PASS
+                </span>
+                <h3 className="text-2xl font-black text-[#FBF7E8]">
+                  Customize Your Pass
+                </h3>
               </div>
 
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={onDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center gap-3 ${
-                  isProcessingImage
-                    ? "border-[#00F2FE] bg-[#00F2FE]/5"
-                    : "border-slate-700 hover:border-[#00F2FE]/60 bg-white/[0.02] hover:bg-white/[0.04]"
-                }`}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,.heic,.heif"
-                  onChange={onInputChange}
-                  className="hidden"
-                />
-
-                {isProcessingImage ? (
-                  <div className="flex flex-col items-center gap-2 py-2">
-                    <div className="w-8 h-8 border-3 border-[#00F2FE] border-t-transparent rounded-full animate-spin" />
-                    <span className="text-xs font-semibold text-[#00F2FE]">
-                      Processing photo (HEIC convert & downscaling)...
+              {/* Step 1: Upload Box */}
+              <div className="p-5 rounded-2xl bg-[#2F683E]/80 border border-[#F1DB51]/30 space-y-4 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-bold text-[#FBF7E8] flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-[#F1DB51] text-[#123A27] text-xs flex items-center justify-center font-mono font-black">
+                      1
                     </span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="w-12 h-12 rounded-xl bg-[#00F2FE]/10 text-[#00F2FE] flex items-center justify-center text-2xl">
-                      📸
+                    Upload Photo
+                  </label>
+                  <span className="text-xs text-[#DEEAE0] font-mono">JPG, PNG, HEIC</span>
+                </div>
+
+                <div
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={onDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center gap-3 ${
+                    isProcessingImage
+                      ? "border-[#F1DB51] bg-[#F1DB51]/10"
+                      : "border-[#61A167] hover:border-[#F1DB51] bg-[#123A27]/50 hover:bg-[#123A27]/80"
+                  }`}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.heic,.heif"
+                    onChange={onInputChange}
+                    className="hidden"
+                  />
+
+                  {isProcessingImage ? (
+                    <div className="flex flex-col items-center gap-2 py-2">
+                      <div className="w-8 h-8 border-3 border-[#F1DB51] border-t-transparent rounded-full animate-spin" />
+                      <span className="text-xs font-bold text-[#F1DB51]">
+                        Processing photo (HEIC convert & downscaling)...
+                      </span>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-200">
-                        Tap to select or drag & drop photo
-                      </p>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        iPhone HEIC photos auto-converted client-side
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {imageError && (
-                <p className="text-xs font-medium text-rose-400 bg-rose-500/10 p-3 rounded-lg border border-rose-500/20">
-                  {imageError}
-                </p>
-              )}
-
-              {/* Optional Adjustments Collapsible */}
-              {userImage && (
-                <div className="pt-2 border-t border-white/5">
-                  <button
-                    type="button"
-                    onClick={() => setShowAdjustments(!showAdjustments)}
-                    className="text-xs font-semibold text-[#00F2FE] hover:underline flex items-center justify-between w-full py-1"
-                  >
-                    <span>⚙️ Optional Photo Adjustment (Zoom & Pan)</span>
-                    <span>{showAdjustments ? "▲ Hide" : "▼ Adjust"}</span>
-                  </button>
-
-                  {showAdjustments && (
-                    <div className="mt-3 p-4 rounded-xl bg-black/40 border border-white/10 space-y-4 text-xs">
-                      {/* Zoom */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-slate-300">
-                          <span>Zoom Level</span>
-                          <span className="font-mono">{adjustments.zoom.toFixed(1)}x</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="1.0"
-                          max="3.0"
-                          step="0.05"
-                          value={adjustments.zoom}
-                          onChange={(e) =>
-                            setAdjustments({
-                              ...adjustments,
-                              zoom: parseFloat(e.target.value),
-                            })
-                          }
-                          className="w-full accent-[#00F2FE]"
-                        />
+                  ) : (
+                    <>
+                      <div className="w-12 h-12 rounded-xl bg-[#F1DB51]/20 text-[#F1DB51] flex items-center justify-center text-2xl">
+                        📸
                       </div>
-
-                      {/* Pan X / Y */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-slate-300 block mb-1">Pan Left / Right</label>
-                          <input
-                            type="range"
-                            min="-200"
-                            max="200"
-                            value={adjustments.panX}
-                            onChange={(e) =>
-                              setAdjustments({
-                                ...adjustments,
-                                panX: parseInt(e.target.value, 10),
-                              })
-                            }
-                            className="w-full accent-[#00F2FE]"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-slate-300 block mb-1">Pan Up / Down</label>
-                          <input
-                            type="range"
-                            min="-200"
-                            max="200"
-                            value={adjustments.panY}
-                            onChange={(e) =>
-                              setAdjustments({
-                                ...adjustments,
-                                panY: parseInt(e.target.value, 10),
-                              })
-                            }
-                            className="w-full accent-[#00F2FE]"
-                          />
-                        </div>
+                      <div>
+                        <p className="text-sm font-bold text-[#FBF7E8]">
+                          Tap to select or drag & drop photo
+                        </p>
+                        <p className="text-xs text-[#DEEAE0] mt-0.5">
+                          iPhone HEIC photos auto-converted client-side
+                        </p>
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setAdjustments(DEFAULT_ADJUSTMENTS)}
-                        className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 transition font-mono text-[11px]"
-                      >
-                        🔄 Reset Auto-Crop
-                      </button>
-                    </div>
+                    </>
                   )}
                 </div>
-              )}
-            </div>
 
-            {/* Step 2: Builder Fields */}
-            <div className="p-5 rounded-2xl bg-[#0E1526]/80 border border-white/10 space-y-4 backdrop-blur-md">
-              <label className="text-sm font-bold text-slate-200 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-[#00F2FE]/20 text-[#00F2FE] text-xs flex items-center justify-center font-mono">
-                  2
-                </span>
-                Enter Details
-              </label>
-
-              {/* Name */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Builder Name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Satoshi Nakamoto"
-                  className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-slate-700 focus:border-[#00F2FE] focus:outline-none text-white text-sm transition"
-                />
-              </div>
-
-              {/* Stack / Role */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">
-                  Tech Stack / Role
-                </label>
-                <input
-                  type="text"
-                  value={stack}
-                  onChange={(e) => {
-                    setStack(e.target.value);
-                    setTitleOverride(null); // Reset override on typing
-                  }}
-                  placeholder="e.g. Next.js • Solana • AI"
-                  className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-slate-700 focus:border-[#00F2FE] focus:outline-none text-white text-sm transition"
-                />
-              </div>
-
-              {/* Generated Builder Title Preview */}
-              <div className="pt-2 border-t border-white/5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-400">
-                    Generated Builder Title
-                  </span>
-                  <button
-                    type="button"
-                    onClick={cycleTitle}
-                    className="text-xs font-semibold text-[#FF9966] hover:underline"
-                  >
-                    🎲 Shuffle Title
-                  </button>
-                </div>
-                <div className="p-3 rounded-xl bg-[#00F2FE]/10 border border-[#00F2FE]/30 flex items-center justify-between">
-                  <span className="font-extrabold text-[#00F2FE] tracking-wide text-sm">
-                    {builderTitle}
-                  </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00F2FE]/20 text-[#00F2FE]">
-                    AUTO
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-3 pt-2">
-              <button
-                type="button"
-                onClick={handleDownload}
-                className="w-full py-4 px-6 rounded-2xl font-black text-base bg-gradient-to-r from-[#00F2FE] to-[#4FACFE] hover:from-[#38BDF8] hover:to-[#60A5FA] text-black shadow-xl shadow-[#00F2FE]/25 transition active:scale-[0.99] flex items-center justify-center gap-2"
-              >
-                <span className="text-xl">📥</span> Download PNG Builder ID
-              </button>
-
-              <button
-                type="button"
-                onClick={handleShareToX}
-                disabled={isSharing}
-                className="w-full py-3.5 px-6 rounded-2xl font-bold text-sm bg-white/10 hover:bg-white/15 border border-white/15 text-white transition active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isSharing ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Preparing Share Link...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                    </svg>
-                    Share to X (#FrameInGoa)
-                  </>
+                {imageError && (
+                  <p className="text-xs font-medium text-rose-300 bg-rose-900/30 p-3 rounded-lg border border-rose-500/30">
+                    {imageError}
+                  </p>
                 )}
-              </button>
 
-              {shareSuccessUrl && (
-                <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs flex items-center justify-between gap-2">
-                  <span className="truncate text-slate-300 font-mono">{shareSuccessUrl}</span>
-                  <button
-                    type="button"
-                    onClick={copyShareLink}
-                    className="px-2.5 py-1 rounded bg-[#00F2FE]/20 text-[#00F2FE] font-bold text-[11px] hover:bg-[#00F2FE]/30 transition shrink-0"
-                  >
-                    {copied ? "Copied! ✓" : "Copy Link"}
-                  </button>
+                {/* Optional Crop & Adjust Controls */}
+                {userImage && (
+                  <div className="pt-2 border-t border-[#FBF7E8]/10">
+                    <button
+                      type="button"
+                      onClick={() => setShowAdjustments(!showAdjustments)}
+                      className="text-xs font-bold text-[#F1DB51] hover:underline flex items-center justify-between w-full py-1"
+                    >
+                      <span>⚙️ Optional Photo Adjustment (Zoom & Pan)</span>
+                      <span>{showAdjustments ? "▲ Hide" : "▼ Adjust"}</span>
+                    </button>
+
+                    {showAdjustments && (
+                      <div className="mt-3 p-4 rounded-xl bg-[#123A27] border border-[#FBF7E8]/15 space-y-4 text-xs">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[#DEEAE0]">
+                            <span>Zoom Level</span>
+                            <span className="font-mono">{adjustments.zoom.toFixed(1)}x</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="1.0"
+                            max="3.0"
+                            step="0.05"
+                            value={adjustments.zoom}
+                            onChange={(e) =>
+                              setAdjustments({
+                                ...adjustments,
+                                zoom: parseFloat(e.target.value),
+                              })
+                            }
+                            className="w-full accent-[#F1DB51]"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[#DEEAE0] block mb-1">Pan Left / Right</label>
+                            <input
+                              type="range"
+                              min="-200"
+                              max="200"
+                              value={adjustments.panX}
+                              onChange={(e) =>
+                                setAdjustments({
+                                  ...adjustments,
+                                  panX: parseInt(e.target.value, 10),
+                                })
+                              }
+                              className="w-full accent-[#F1DB51]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[#DEEAE0] block mb-1">Pan Up / Down</label>
+                            <input
+                              type="range"
+                              min="-200"
+                              max="200"
+                              value={adjustments.panY}
+                              onChange={(e) =>
+                                setAdjustments({
+                                  ...adjustments,
+                                  panY: parseInt(e.target.value, 10),
+                                })
+                              }
+                              className="w-full accent-[#F1DB51]"
+                            />
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setAdjustments(DEFAULT_ADJUSTMENTS)}
+                          className="px-3 py-1.5 rounded-lg bg-[#2F683E] hover:bg-[#3C7A4E] text-[#FBF7E8] transition font-mono text-[11px]"
+                        >
+                          🔄 Reset Auto-Crop
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Step 2: Form Inputs */}
+              <div className="p-5 rounded-2xl bg-[#2F683E]/80 border border-[#F1DB51]/30 space-y-4 shadow-lg">
+                <label className="text-sm font-bold text-[#FBF7E8] flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-[#F1DB51] text-[#123A27] text-xs flex items-center justify-center font-mono font-black">
+                    2
+                  </span>
+                  Enter Builder Details
+                </label>
+
+                {/* Name */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[#DEEAE0]">Builder Name</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Satoshi Nakamoto"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#123A27] border border-[#61A167] focus:border-[#F1DB51] focus:outline-none text-[#FBF7E8] text-sm transition"
+                  />
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* RIGHT COLUMN: Live Canvas Preview */}
-          <div className="lg:col-span-6 flex flex-col items-center space-y-4">
-            <div className="w-full flex items-center justify-between px-1">
-              <span className="text-xs font-mono text-slate-400 uppercase">Live Card Preview</span>
-              <span className="text-xs font-mono text-[#00FF87] flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#00FF87] animate-pulse" />
-                Real-time 1200x1500 Canvas
-              </span>
+                {/* Stack / Role */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-[#DEEAE0]">Tech Stack / Role</label>
+                  <input
+                    type="text"
+                    value={stack}
+                    onChange={(e) => {
+                      setStack(e.target.value);
+                      setTitleOverride(null);
+                    }}
+                    placeholder="e.g. Next.js • Solana • AI"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#123A27] border border-[#61A167] focus:border-[#F1DB51] focus:outline-none text-[#FBF7E8] text-sm transition"
+                  />
+                </div>
+
+                {/* Builder Title Generator */}
+                <div className="pt-2 border-t border-[#FBF7E8]/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#DEEAE0]">
+                      Generated Builder Title
+                    </span>
+                    <button
+                      type="button"
+                      onClick={cycleTitle}
+                      className="text-xs font-bold text-[#F1DB51] hover:underline"
+                    >
+                      🎲 Shuffle Title
+                    </button>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-[#BF4173] border border-[#F1DB51]/40 flex items-center justify-between shadow-inner">
+                    <span className="font-black text-[#FBF7E8] tracking-wide text-sm">
+                      {builderTitle}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#F1DB51] text-[#123A27]">
+                      AUTO
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  className="w-full py-4 px-6 rounded-2xl font-black text-base bg-[#F1DB51] hover:bg-[#E9B91E] text-[#123A27] shadow-xl transition active:scale-[0.99] flex items-center justify-center gap-2"
+                >
+                  <span className="text-xl">📥</span> Download PNG Builder ID
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleShareToX}
+                  disabled={isSharing}
+                  className="w-full py-3.5 px-6 rounded-2xl font-bold text-sm bg-[#BF4173] hover:bg-[#A3345E] text-[#FBF7E8] transition active:scale-[0.99] flex items-center justify-center gap-2 border border-[#F1DB51]/30 disabled:opacity-50"
+                >
+                  {isSharing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-[#FBF7E8] border-t-transparent rounded-full animate-spin" />
+                      Preparing Share Link...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                      </svg>
+                      Share to X (#FrameInGoa)
+                    </>
+                  )}
+                </button>
+
+                {shareSuccessUrl && (
+                  <div className="p-3 rounded-xl bg-[#123A27] border border-[#F1DB51]/30 text-xs flex items-center justify-between gap-2">
+                    <span className="truncate text-[#DEEAE0] font-mono">{shareSuccessUrl}</span>
+                    <button
+                      type="button"
+                      onClick={copyShareLink}
+                      className="px-2.5 py-1 rounded bg-[#F1DB51] text-[#123A27] font-black text-[11px] hover:bg-[#E9B91E] transition shrink-0"
+                    >
+                      {copied ? "Copied! ✓" : "Copy Link"}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Responsive Canvas Wrapper */}
-            <div className="w-full max-w-md aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl shadow-[#00F2FE]/10 border-2 border-[#00F2FE]/40 bg-[#0E1526] relative group">
-              <canvas
-                ref={canvasRef}
-                className="w-full h-full object-contain display-block"
-              />
-            </div>
+            {/* RIGHT COLUMN: Persistent Live Preview */}
+            <div className="lg:col-span-6 flex flex-col items-center space-y-4">
+              <div className="w-full flex items-center justify-between px-1">
+                <span className="text-xs font-mono text-[#DEEAE0] uppercase">
+                  Live Builder ID Preview
+                </span>
+                <span className="text-xs font-mono text-[#F1DB51] flex items-center gap-1.5 font-bold">
+                  <span className="w-2 h-2 rounded-full bg-[#F1DB51] animate-pulse" />
+                  Instant 1200x1500 Canvas
+                </span>
+              </div>
 
-            <p className="text-xs text-slate-500 font-mono text-center max-w-xs">
-              Client-side rendered via HTML5 Canvas. Zero latency server round-trips.
-            </p>
-          </div>
-        </main>
+              {/* Canvas Card Graphic View */}
+              <div className="w-full max-w-md aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl border-4 border-[#F1DB51] bg-[#123A27] relative group">
+                <canvas
+                  ref={canvasRef}
+                  className="w-full h-full object-contain display-block"
+                />
+              </div>
+
+              <p className="text-xs text-[#DEEAE0]/80 font-mono text-center max-w-xs">
+                Rendered entirely in browser memory. Instant updates without page reload.
+              </p>
+            </div>
+          </main>
+        </div>
 
         {/* Footer */}
-        <footer className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-mono">
+        <footer className="mt-16 pt-6 border-t border-[#FBF7E8]/15 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#DEEAE0] font-mono">
           <p>© 2026 Hacker House Goa • Organized by 2:47 PM Studio</p>
-          <p>Goa, India • ₹46.5L In Bounties • #FrameInGoa</p>
+          <p>Goa, India • {BRAND_CONFIG.bountyTotal} • {BRAND_CONFIG.hashtag}</p>
         </footer>
       </div>
     </div>
