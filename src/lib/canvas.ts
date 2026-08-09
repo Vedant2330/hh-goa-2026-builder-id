@@ -52,11 +52,11 @@ export async function renderBuilderCardCanvas({
   ctx.fillStyle = BRAND_CONFIG.colors.deepForest;
   ctx.fillRect(0, 0, width, height);
 
-  // 2. DRAW AUTHENTIC REFERENCE ARTWORK IF LOADED
+  // 2. DRAW AUTHENTIC REFERENCE BACKGROUND ARTWORK IF LOADED
   if (bgArtwork) {
     ctx.drawImage(bgArtwork, 0, 0, width, height);
   } else {
-    // Fallback radial sun gradient if asset pending
+    // Fallback radial sun gradient if asset is loading
     const sunGlow = ctx.createRadialGradient(width / 2, 400, 40, width / 2, 400, 500);
     sunGlow.addColorStop(0, "rgba(241, 219, 81, 0.3)");
     sunGlow.addColorStop(0.7, "rgba(47, 104, 62, 0.2)");
@@ -65,11 +65,15 @@ export async function renderBuilderCardCanvas({
     ctx.fillRect(0, 0, width, height);
   }
 
-  // Subtle dark overlay to ensure high contrast for text layers
-  ctx.fillStyle = "rgba(18, 58, 39, 0.25)";
-  ctx.fillRect(0, 0, width, height);
+  // Subtle dark-green tint over top & center to keep photo and text ultra-legible
+  const topOverlay = ctx.createLinearGradient(0, 0, 0, 1100);
+  topOverlay.addColorStop(0, "rgba(18, 58, 39, 0.35)");
+  topOverlay.addColorStop(0.7, "rgba(18, 58, 39, 0.1)");
+  topOverlay.addColorStop(1, "rgba(18, 58, 39, 0)");
+  ctx.fillStyle = topOverlay;
+  ctx.fillRect(0, 0, width, 1100);
 
-  // 3. CARD OUTER BORDER FRAME
+  // 3. CARD OUTER DOUBLE BORDER FRAME
   const cardMargin = 36;
   const cardW = width - cardMargin * 2;
   const cardH = height - cardMargin * 2;
@@ -129,9 +133,9 @@ export async function renderBuilderCardCanvas({
   ctx.fillText(`${BRAND_CONFIG.eventTag} • ${BRAND_CONFIG.location}`, width / 2, titleY + 30);
 
   // 5. PHOTO CONTAINER
-  const photoSize = 500;
+  const photoSize = 490;
   const photoX = (width - photoSize) / 2;
-  const photoY = titleY + 60;
+  const photoY = titleY + 55;
   const photoRadius = 24;
 
   // Photo Outer Frame (Warm Cream & Sun Yellow)
@@ -159,7 +163,6 @@ export async function renderBuilderCardCanvas({
     );
     ctx.drawImage(userImage, photoX + rect.x, photoY + rect.y, rect.width, rect.height);
   } else {
-    // Retro Placeholder Photo
     ctx.fillStyle = BRAND_CONFIG.colors.deepForest;
     ctx.fillRect(photoX, photoY, photoSize, photoSize);
 
@@ -169,22 +172,22 @@ export async function renderBuilderCardCanvas({
     ctx.fillText("YOUR PHOTO HERE", photoX + photoSize / 2, photoY + photoSize / 2);
   }
 
-  // Subtle Inner Edge Shadow
+  // Subtle Edge Vignette
   const photoVignette = ctx.createLinearGradient(photoX, photoY, photoX, photoY + photoSize);
-  photoVignette.addColorStop(0, "rgba(0, 0, 0, 0.15)");
+  photoVignette.addColorStop(0, "rgba(0, 0, 0, 0.12)");
   photoVignette.addColorStop(0.8, "rgba(0, 0, 0, 0)");
-  photoVignette.addColorStop(1, "rgba(0, 0, 0, 0.3)");
+  photoVignette.addColorStop(1, "rgba(0, 0, 0, 0.25)");
   ctx.fillStyle = photoVignette;
   ctx.fillRect(photoX, photoY, photoSize, photoSize);
 
-  ctx.restore(); // Restore clip context
+  ctx.restore();
 
   // 6. USER INFO SECTION
-  const infoStartY = photoY + photoSize + 55;
+  const infoStartY = photoY + photoSize + 52;
 
-  // Builder Name (Warm Cream `#FBF7E8`, auto-scaled font)
+  // Builder Name
   const displayName = (name || "ANONYMOUS BUILDER").trim().toUpperCase();
-  let nameFontSize = 52;
+  let nameFontSize = 50;
   ctx.font = `900 ${nameFontSize}px system-ui, -apple-system, 'Space Grotesk', sans-serif`;
   while (ctx.measureText(displayName).width > 920 && nameFontSize > 28) {
     nameFontSize -= 2;
@@ -197,21 +200,21 @@ export async function renderBuilderCardCanvas({
 
   // Builder Title Badge Pill (Goa Pink `#BF4173`)
   const finalTitle = builderTitleOverride || generateBuilderTitle(stack, name);
-  const titleYPos = infoStartY + 50;
+  const titleYPos = infoStartY + 48;
 
   ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
   const titleMetrics = ctx.measureText(finalTitle);
   const pillWidth = Math.max(340, titleMetrics.width + 72);
-  const pillHeight = 52;
+  const pillHeight = 50;
   const pillX = (width - pillWidth) / 2;
 
   ctx.fillStyle = BRAND_CONFIG.colors.goaPink;
-  drawRoundedRect(ctx, pillX, titleYPos - 36, pillWidth, pillHeight, 26);
+  drawRoundedRect(ctx, pillX, titleYPos - 35, pillWidth, pillHeight, 25);
   ctx.fill();
 
   ctx.strokeStyle = BRAND_CONFIG.colors.sunYellow;
   ctx.lineWidth = 2;
-  drawRoundedRect(ctx, pillX, titleYPos - 36, pillWidth, pillHeight, 26);
+  drawRoundedRect(ctx, pillX, titleYPos - 35, pillWidth, pillHeight, 25);
   ctx.stroke();
 
   ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
@@ -220,24 +223,24 @@ export async function renderBuilderCardCanvas({
   ctx.fillText(finalTitle, width / 2, titleYPos);
 
   // Stack / Role Field Box
-  const stackYPos = titleYPos + 60;
+  const stackYPos = titleYPos + 58;
   const displayStack = (stack || "Full-Stack Developer / AI Builder").trim();
 
   const stackBoxW = 880;
-  const stackBoxH = 50;
+  const stackBoxH = 48;
   const stackBoxX = (width - stackBoxW) / 2;
 
-  ctx.fillStyle = "rgba(18, 58, 39, 0.85)";
-  drawRoundedRect(ctx, stackBoxX, stackYPos - 34, stackBoxW, stackBoxH, 12);
+  ctx.fillStyle = "rgba(18, 58, 39, 0.88)";
+  drawRoundedRect(ctx, stackBoxX, stackYPos - 33, stackBoxW, stackBoxH, 12);
   ctx.fill();
 
   ctx.strokeStyle = BRAND_CONFIG.colors.palmSage;
   ctx.lineWidth = 1.5;
-  drawRoundedRect(ctx, stackBoxX, stackYPos - 34, stackBoxW, stackBoxH, 12);
+  drawRoundedRect(ctx, stackBoxX, stackYPos - 33, stackBoxW, stackBoxH, 12);
   ctx.stroke();
 
   ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
-  ctx.font = "900 15px system-ui, sans-serif";
+  ctx.font = "900 14px system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText("STACK / ROLE:", stackBoxX + 24, stackYPos);
 
@@ -254,48 +257,97 @@ export async function renderBuilderCardCanvas({
   }
   ctx.fillText(stackText, stackBoxX + 160, stackYPos);
 
-  // 7. FOOTER & METADATA BARCODE
-  const footerY = cardY + cardH - 50;
+  // Note: Beach/sunset artwork is visible in y: 1080px to 1250px area.
 
-  // Divider Line
-  ctx.strokeStyle = "rgba(251, 247, 232, 0.3)";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(cardX + 40, footerY - 50);
-  ctx.lineTo(cardX + cardW - 40, footerY - 50);
+  // 7. LOWER THIRD INTEGRATED FOOTER BAND (Bottom ~16% of card, y: 1255px to 1425px)
+  const footerBandY = 1255;
+  const footerBandW = cardW - 40;
+  const footerBandH = 170;
+  const footerBandX = cardX + 20;
+
+  // Integrated Dark-Green Footer Container
+  ctx.fillStyle = "rgba(11, 40, 26, 0.88)";
+  drawRoundedRect(ctx, footerBandX, footerBandY, footerBandW, footerBandH, 22);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(241, 219, 81, 0.35)";
+  ctx.lineWidth = 1.5;
+  drawRoundedRect(ctx, footerBandX, footerBandY, footerBandW, footerBandH, 22);
   ctx.stroke();
 
-  // Left Metadata: ID Hash & Bounty Tag
+  // LEFT ZONE: BUILDER ID & BOUNTY METADATA
+  const leftZoneX = footerBandX + 32;
+  const leftCenterY = footerBandY + 45;
   const idHash = Math.abs(simpleHash(displayName + displayStack) % 9000) + 1000;
-  ctx.fillStyle = BRAND_CONFIG.colors.softSage;
-  ctx.font = "bold 14px monospace";
+
+  ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
+  ctx.font = "900 12px system-ui, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText(`ID: HHG26-${idHash}`, cardX + 50, footerY - 15);
+  ctx.fillText("BUILDER ID", leftZoneX, leftCenterY);
+
+  ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
+  ctx.font = "bold 24px monospace";
+  ctx.fillText(`HHG26-${idHash}`, leftZoneX, leftCenterY + 30);
+
+  ctx.fillStyle = BRAND_CONFIG.colors.palmSage;
+  ctx.font = "bold 14px system-ui, sans-serif";
+  ctx.fillText(BRAND_CONFIG.bountyTotal, leftZoneX, leftCenterY + 58);
+
+  // CENTER ZONE: LARGE HIGH-CONTRAST BARCODE (2.5x width)
+  const barcodeCenterY = footerBandY + 42;
+  const barcodeW = 340;
+  const barcodeH = 54;
+  const barcodeX = width / 2 - barcodeW / 2;
+
+  // Barcode Background Pill for ultra contrast
+  ctx.fillStyle = "rgba(18, 58, 39, 0.95)";
+  drawRoundedRect(ctx, barcodeX - 16, barcodeCenterY - 10, barcodeW + 32, barcodeH + 42, 12);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(241, 219, 81, 0.25)";
+  ctx.lineWidth = 1;
+  drawRoundedRect(ctx, barcodeX - 16, barcodeCenterY - 10, barcodeW + 32, barcodeH + 42, 12);
+  ctx.stroke();
+
+  // Draw High-Contrast Barcode Bars (Warm Cream `#FBF7E8`)
+  ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
+  const barPattern = [
+    4, 2, 6, 2, 3, 5, 2, 4, 2, 7, 3, 2, 5, 2, 4, 3, 6, 2, 3, 5, 2, 4, 2, 6, 3, 2, 5, 2, 4, 3, 5, 2, 4, 2
+  ];
+  let currentBarX = barcodeX;
+  for (const bw of barPattern) {
+    ctx.fillRect(currentBarX, barcodeCenterY, bw, barcodeH);
+    currentBarX += bw + 4;
+  }
+
+  // Barcode Number Subtext
+  ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
+  ctx.font = "bold 13px monospace";
+  ctx.textAlign = "center";
+  ctx.fillText(`* HHG26-${idHash} *`, width / 2, barcodeCenterY + barcodeH + 22);
+
+  // RIGHT ZONE: HASHTAG & LOCATION
+  const rightZoneX = footerBandX + footerBandW - 32;
+  const rightCenterY = footerBandY + 45;
 
   ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
-  ctx.font = "bold 13px system-ui, sans-serif";
-  ctx.fillText(BRAND_CONFIG.bountyTotal, cardX + 50, footerY + 10);
-
-  // Right Metadata: Hashtag
-  ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
-  ctx.font = "900 18px system-ui, sans-serif";
+  ctx.font = "900 22px system-ui, sans-serif";
   ctx.textAlign = "right";
-  ctx.fillText(BRAND_CONFIG.hashtag, cardX + cardW - 50, footerY - 15);
+  ctx.fillText(BRAND_CONFIG.hashtag, rightZoneX, rightCenterY);
 
   ctx.fillStyle = BRAND_CONFIG.colors.softSage;
-  ctx.font = "12px system-ui, sans-serif";
-  ctx.fillText("247 SELECTED BUILDERS", cardX + cardW - 50, footerY + 10);
+  ctx.font = "13px system-ui, sans-serif";
+  ctx.fillText("247 SELECTED BUILDERS", rightZoneX, rightCenterY + 28);
 
-  // Center Security Barcode Graphic
-  const barcodeX = width / 2 - 80;
-  const barcodeY = footerY - 25;
   ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
-  const barWidths = [3, 1, 4, 2, 1, 5, 2, 3, 1, 4, 2, 5, 1, 3, 2, 4, 1, 3, 2];
-  let currentBarX = barcodeX;
-  for (const bw of barWidths) {
-    ctx.fillRect(currentBarX, barcodeY, bw, 32);
-    currentBarX += bw + 3;
-  }
+  ctx.font = "bold 14px system-ui, sans-serif";
+  ctx.fillText("GOA, INDIA", rightZoneX, rightCenterY + 56);
+
+  // VERY BOTTOM EDITORIAL LINE
+  const bottomLineY = cardY + cardH - 18;
+  ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
+  ctx.font = "900 13px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("BUILD • CODE • CHILL • REPEAT", width / 2, bottomLineY);
 }
 
 /**
