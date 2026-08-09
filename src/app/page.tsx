@@ -11,33 +11,33 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function GeneratorPage() {
-  // Form Input states
+  // Input states
   const [name, setName] = useState<string>("Satoshi Nakamoto");
   const [stack, setStack] = useState<string>("Next.js • Solana • AI");
   const [builderTitle, setBuilderTitle] = useState<string>("");
   const [titleOverride, setTitleOverride] = useState<string | null>(null);
 
-  // In-Memory Processed Image (Uploaded once, retained in client memory for instant renders)
+  // In-Memory Processed Image (Uploaded once, preserved in memory for instant 0ms canvas redraws)
   const [userImage, setUserImage] = useState<HTMLImageElement | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState<boolean>(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(DEFAULT_ADJUSTMENTS);
   const [showAdjustments, setShowAdjustments] = useState<boolean>(false);
 
-  // Background artwork element for canvas
-  const [bgArtwork, setBgArtwork] = useState<HTMLImageElement | null>(null);
+  // Card Background Artwork (`card-bg.png`)
+  const [cardBgArtwork, setCardBgArtwork] = useState<HTMLImageElement | null>(null);
 
   // Sharing states
   const [isSharing, setIsSharing] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [shareSuccessUrl, setShareSuccessUrl] = useState<string | null>(null);
 
-  // Canvas & Input refs
+  // Refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const generatorRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto-generate title whenever stack/name change (unless overridden manually)
+  // Auto-generate title whenever stack/name change (unless user manually shuffled)
   useEffect(() => {
     if (!titleOverride) {
       const generated = generateBuilderTitle(stack, name);
@@ -47,9 +47,9 @@ export default function GeneratorPage() {
     }
   }, [stack, name, titleOverride]);
 
-  // Load default retro placeholder avatar and tropical background artwork on initial mount
+  // Load initial placeholder avatar and authentic card background asset on mount
   useEffect(() => {
-    // 1. Default Avatar Placeholder
+    // 1. Placeholder Avatar Image
     const defaultImg = new Image();
     defaultImg.crossOrigin = "anonymous";
     defaultImg.onload = () => setUserImage(defaultImg);
@@ -58,21 +58,21 @@ export default function GeneratorPage() {
       encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500">
         <rect width="500" height="500" fill="#123A27"/>
-        <circle cx="250" cy="250" r="220" fill="#2F683E"/>
-        <circle cx="250" cy="200" r="85" fill="#F1DB51"/>
+        <circle cx="250" cy="250" r="210" fill="#2F683E"/>
+        <circle cx="250" cy="190" r="85" fill="#F1DB51"/>
         <path d="M110 440 C 110 320, 390 320, 390 440 Z" fill="#F1DB51"/>
         <text x="250" y="470" font-family="sans-serif" font-size="20" font-weight="900" fill="#FBF7E8" text-anchor="middle">HH GOA BUILDER</text>
       </svg>
     `);
 
-    // 2. Background Tropical Artwork
-    const bgImg = new Image();
-    bgImg.crossOrigin = "anonymous";
-    bgImg.onload = () => setBgArtwork(bgImg);
-    bgImg.src = "/assets/tropical_goa_bg.png";
+    // 2. Card Background Asset (MobileUI+IDcard.png)
+    const cardBg = new Image();
+    cardBg.crossOrigin = "anonymous";
+    cardBg.onload = () => setCardBgArtwork(cardBg);
+    cardBg.src = "/assets/card-bg.png";
   }, []);
 
-  // Instant client-side canvas render (Redraws in 0ms without server calls or page reload)
+  // In-memory instant canvas redraw (0ms delay, no reloads, no server requests)
   const triggerRender = useCallback(async () => {
     if (!canvasRef.current) return;
     await renderBuilderCardCanvas({
@@ -82,28 +82,28 @@ export default function GeneratorPage() {
       stack,
       builderTitleOverride: builderTitle,
       adjustments,
-      bgArtwork,
+      bgArtwork: cardBgArtwork,
     });
-  }, [userImage, name, stack, builderTitle, adjustments, bgArtwork]);
+  }, [userImage, name, stack, builderTitle, adjustments, cardBgArtwork]);
 
   useEffect(() => {
     triggerRender();
   }, [triggerRender]);
 
-  // Photo Upload Handler (Processed ONCE, kept in memory for all future edits)
+  // File Upload Handler (Processed ONCE, kept in memory for all edits)
   const handleFileSelect = async (file: File) => {
     if (!file) return;
     setIsProcessingImage(true);
     setImageError(null);
 
     try {
-      // 1. Client-side HEIC conversion if needed
+      // 1. Convert HEIC if needed
       const convertedBlob = await convertHeicIfNeeded(file);
 
-      // 2. Immediate downscaling (max 2000px)
+      // 2. Downscale image (max 2000px)
       const processedImg = await processAndDownscaleImage(convertedBlob, 2000);
 
-      // Reset crop adjustments & store processed image in memory
+      // Reset adjustments & store in memory
       setAdjustments(DEFAULT_ADJUSTMENTS);
       setUserImage(processedImg);
     } catch (err: unknown) {
@@ -251,69 +251,77 @@ export default function GeneratorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#123A27] text-[#FBF7E8] font-sans selection:bg-[#F1DB51] selection:text-[#123A27]">
-      {/* Background Retro Tropical Imagery & Grain */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-[#2F683E]/60 rounded-full blur-[140px]" />
-        <div className="absolute bottom-0 left-0 right-0 h-[400px] bg-gradient-to-t from-[#0B281A] to-transparent opacity-80" />
-      </div>
+    <div className="min-h-screen goa-bg-environment text-[#FBF7E8] font-sans selection:bg-[#F1DB51] selection:text-[#123A27] relative">
+      {/* Semi-transparent protective gradient layer for contrast */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#123A27]/40 via-transparent to-[#123A27]/80 pointer-events-none z-0" />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 py-6 md:py-8 flex flex-col min-h-screen">
-        {/* Navigation Bar */}
-        <header className="flex items-center justify-between py-4 border-b border-[#FBF7E8]/15 mb-8">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 py-4 md:py-6 flex flex-col min-h-screen">
+        {/* HEADER SECTION */}
+        <header className="flex items-center justify-between py-3 border-b border-[#FBF7E8]/20 mb-6 bg-[#123A27]/60 backdrop-blur-md px-4 rounded-2xl">
+          {/* Left: Branding */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#F1DB51] text-[#123A27] flex items-center justify-center font-black text-xl shadow-md">
               HH
             </div>
             <div>
-              <h1 className="font-black text-lg md:text-xl tracking-tight text-[#FBF7E8] leading-tight">
+              <h1 className="font-black text-base md:text-xl tracking-tight text-[#FBF7E8] leading-tight">
                 {BRAND_CONFIG.eventName}
               </h1>
-              <p className="text-xs text-[#DEEAE0] font-mono">
+              <p className="text-xs text-[#DEEAE0] font-mono hidden sm:block">
                 {BRAND_CONFIG.eventTag} • {BRAND_CONFIG.organizer}
               </p>
             </div>
           </div>
 
+          {/* Center Navigation Links */}
+          <nav className="hidden md:flex items-center gap-6 text-xs font-bold tracking-wide text-[#DEEAE0]">
+            <a href="#" className="hover:text-[#F1DB51] transition">Home</a>
+            <a href="#" className="hover:text-[#F1DB51] transition">About</a>
+            <a href="#" className="hover:text-[#F1DB51] transition">Tracks</a>
+            <a href="#" className="hover:text-[#F1DB51] transition">Schedule</a>
+            <a href="#" className="hover:text-[#F1DB51] transition">FAQs</a>
+          </nav>
+
+          {/* Right: CTA & Badge */}
           <div className="flex items-center gap-3">
-            <span className="hidden sm:inline-block text-xs font-mono px-3 py-1.5 rounded-lg bg-[#2F683E] border border-[#F1DB51]/30 text-[#F1DB51]">
+            <span className="hidden lg:inline-block text-xs font-mono px-3 py-1 rounded-lg bg-[#2F683E]/80 border border-[#F1DB51]/40 text-[#F1DB51]">
               {BRAND_CONFIG.hashtag}
             </span>
             <button
               onClick={scrollToGenerator}
-              className="px-4 py-2 text-xs font-black bg-[#F1DB51] hover:bg-[#E9B91E] text-[#123A27] rounded-xl transition shadow-md"
+              className="px-4 py-2 text-xs font-black bg-[#F1DB51] hover:bg-[#E9B91E] text-[#123A27] rounded-xl transition shadow-md active:scale-95"
             >
-              GENERATE YOUR ID
+              Generate Your ID
             </button>
           </div>
         </header>
 
-        {/* EDITORIAL HERO SECTION */}
-        <section className="text-center py-10 md:py-16 max-w-3xl mx-auto space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#BF4173]/20 border border-[#BF4173]/40 text-[#FBF7E8] text-xs font-bold uppercase tracking-widest">
+        {/* HERO SECTION */}
+        <section className="text-center py-8 md:py-14 max-w-3xl mx-auto space-y-5">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#BF4173] text-[#FBF7E8] text-xs font-black uppercase tracking-widest shadow-md">
             <span className="w-2 h-2 rounded-full bg-[#F1DB51] animate-pulse" />
-            {BRAND_CONFIG.eventTag} • {BRAND_CONFIG.bountyTotal}
+            OFFICIAL BUILDER PASS • {BRAND_CONFIG.bountyTotal}
           </div>
 
-          <h2 className="text-4xl md:text-6xl font-black tracking-tight text-[#FBF7E8] leading-[1.1]">
-            YOUR JOURNEY. <br />
-            <span className="text-[#F1DB51]">YOUR IDENTITY.</span>
+          <h2 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1]">
+            <span className="text-[#FBF7E8] block">YOUR JOURNEY.</span>
+            <span className="text-[#F1DB51] block mt-1">YOUR IDENTITY.</span>
           </h2>
 
-          <p className="text-base md:text-lg text-[#DEEAE0] max-w-xl mx-auto font-medium leading-relaxed">
+          <p className="text-sm md:text-base text-[#DEEAE0] max-w-lg mx-auto font-medium leading-relaxed drop-shadow">
             Create your official Hacker House Goa 2026 Builder ID. Upload your photo, customize your identity, and share your pass with the world.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <button
               onClick={scrollToGenerator}
-              className="w-full sm:w-auto py-4 px-8 rounded-2xl font-black text-base bg-[#F1DB51] hover:bg-[#E9B91E] text-[#123A27] shadow-xl transition active:scale-[0.99] flex items-center justify-center gap-2"
+              className="w-full sm:w-auto py-3.5 px-8 rounded-2xl font-black text-base bg-[#F1DB51] hover:bg-[#E9B91E] text-[#123A27] shadow-2xl transition active:scale-95 flex items-center justify-center gap-2"
             >
               <span>🌴</span> START BUILDING YOUR ID
             </button>
           </div>
 
-          <div className="flex items-center justify-center gap-6 pt-4 text-xs font-mono text-[#DEEAE0]/80">
+          <div className="flex items-center justify-center gap-4 md:gap-6 text-xs font-mono text-[#FBF7E8]/90 font-semibold drop-shadow">
             <span>✓ Instant Generation</span>
             <span>•</span>
             <span>✓ High-Quality PNG</span>
@@ -323,11 +331,11 @@ export default function GeneratorPage() {
         </section>
 
         {/* GENERATOR WORKSPACE SECTION */}
-        <div ref={generatorRef} className="pt-8">
+        <div ref={generatorRef} id="generator" className="pt-6">
           <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* LEFT COLUMN: Controls */}
-            <div className="lg:col-span-6 space-y-6">
-              <div className="border-b border-[#FBF7E8]/10 pb-3">
+            {/* LEFT COLUMN: Controls & Inputs */}
+            <div className="lg:col-span-6 space-y-5">
+              <div className="border-b border-[#FBF7E8]/20 pb-2">
                 <span className="text-xs font-bold uppercase tracking-widest text-[#F1DB51]">
                   FORMAT B • BUILDER ID PASS
                 </span>
@@ -336,15 +344,17 @@ export default function GeneratorPage() {
                 </h3>
               </div>
 
-              {/* Step 1: Upload Box */}
-              <div className="p-5 rounded-2xl bg-[#2F683E]/80 border border-[#F1DB51]/30 space-y-4 shadow-lg">
+              {/* Upload Card */}
+              <div className="p-5 rounded-2xl bg-[#123A27]/90 border border-[#F1DB51]/40 space-y-4 shadow-xl backdrop-blur-md">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-bold text-[#FBF7E8] flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-[#F1DB51] text-[#123A27] text-xs flex items-center justify-center font-mono font-black">
-                      1
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-[#F1DB51] text-[#123A27] text-[11px] font-black uppercase">
+                      GET STARTED
                     </span>
-                    Upload Photo
-                  </label>
+                    <label className="text-sm font-bold text-[#FBF7E8]">
+                      Upload Your Photo
+                    </label>
+                  </div>
                   <span className="text-xs text-[#DEEAE0] font-mono">JPG, PNG, HEIC</span>
                 </div>
 
@@ -352,10 +362,10 @@ export default function GeneratorPage() {
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={onDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center gap-3 ${
+                  className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center gap-2 ${
                     isProcessingImage
                       ? "border-[#F1DB51] bg-[#F1DB51]/10"
-                      : "border-[#61A167] hover:border-[#F1DB51] bg-[#123A27]/50 hover:bg-[#123A27]/80"
+                      : "border-[#61A167] hover:border-[#F1DB51] bg-[#2F683E]/40 hover:bg-[#2F683E]/70"
                   }`}
                 >
                   <input
@@ -375,7 +385,7 @@ export default function GeneratorPage() {
                     </div>
                   ) : (
                     <>
-                      <div className="w-12 h-12 rounded-xl bg-[#F1DB51]/20 text-[#F1DB51] flex items-center justify-center text-2xl">
+                      <div className="w-12 h-12 rounded-xl bg-[#F1DB51] text-[#123A27] flex items-center justify-center text-2xl shadow-md">
                         📸
                       </div>
                       <div>
@@ -383,22 +393,25 @@ export default function GeneratorPage() {
                           Tap to select or drag & drop photo
                         </p>
                         <p className="text-xs text-[#DEEAE0] mt-0.5">
-                          iPhone HEIC photos auto-converted client-side
+                          JPG, PNG, HEIC up to 10MB
                         </p>
                       </div>
+                      <p className="text-[11px] text-[#F1DB51] font-mono font-semibold pt-1">
+                        Tip: Square or portrait photos work best!
+                      </p>
                     </>
                   )}
                 </div>
 
                 {imageError && (
-                  <p className="text-xs font-medium text-rose-300 bg-rose-900/30 p-3 rounded-lg border border-rose-500/30">
+                  <p className="text-xs font-medium text-rose-200 bg-rose-900/40 p-3 rounded-lg border border-rose-500/40">
                     {imageError}
                   </p>
                 )}
 
-                {/* Optional Crop & Adjust Controls */}
+                {/* Collapsible Photo Adjustment Controls */}
                 {userImage && (
-                  <div className="pt-2 border-t border-[#FBF7E8]/10">
+                  <div className="pt-2 border-t border-[#FBF7E8]/15">
                     <button
                       type="button"
                       onClick={() => setShowAdjustments(!showAdjustments)}
@@ -409,7 +422,7 @@ export default function GeneratorPage() {
                     </button>
 
                     {showAdjustments && (
-                      <div className="mt-3 p-4 rounded-xl bg-[#123A27] border border-[#FBF7E8]/15 space-y-4 text-xs">
+                      <div className="mt-3 p-4 rounded-xl bg-[#0B281A] border border-[#FBF7E8]/20 space-y-4 text-xs">
                         <div className="space-y-1">
                           <div className="flex justify-between text-[#DEEAE0]">
                             <span>Zoom Level</span>
@@ -480,13 +493,13 @@ export default function GeneratorPage() {
                 )}
               </div>
 
-              {/* Step 2: Form Inputs */}
-              <div className="p-5 rounded-2xl bg-[#2F683E]/80 border border-[#F1DB51]/30 space-y-4 shadow-lg">
+              {/* Details Inputs Box */}
+              <div className="p-5 rounded-2xl bg-[#123A27]/90 border border-[#F1DB51]/40 space-y-4 shadow-xl backdrop-blur-md">
                 <label className="text-sm font-bold text-[#FBF7E8] flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-[#F1DB51] text-[#123A27] text-xs flex items-center justify-center font-mono font-black">
                     2
                   </span>
-                  Enter Builder Details
+                  Enter Details
                 </label>
 
                 {/* Name */}
@@ -497,7 +510,7 @@ export default function GeneratorPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Satoshi Nakamoto"
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#123A27] border border-[#61A167] focus:border-[#F1DB51] focus:outline-none text-[#FBF7E8] text-sm transition"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#0B281A] border border-[#61A167] focus:border-[#F1DB51] focus:outline-none text-[#FBF7E8] text-sm transition"
                   />
                 </div>
 
@@ -512,12 +525,12 @@ export default function GeneratorPage() {
                       setTitleOverride(null);
                     }}
                     placeholder="e.g. Next.js • Solana • AI"
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#123A27] border border-[#61A167] focus:border-[#F1DB51] focus:outline-none text-[#FBF7E8] text-sm transition"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#0B281A] border border-[#61A167] focus:border-[#F1DB51] focus:outline-none text-[#FBF7E8] text-sm transition"
                   />
                 </div>
 
-                {/* Builder Title Generator */}
-                <div className="pt-2 border-t border-[#FBF7E8]/10 space-y-2">
+                {/* Generated Builder Title */}
+                <div className="pt-2 border-t border-[#FBF7E8]/15 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-[#DEEAE0]">
                       Generated Builder Title
@@ -530,11 +543,11 @@ export default function GeneratorPage() {
                       🎲 Shuffle Title
                     </button>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-[#BF4173] border border-[#F1DB51]/40 flex items-center justify-between shadow-inner">
+                  <div className="p-3.5 rounded-xl bg-[#BF4173] border border-[#F1DB51]/50 flex items-center justify-between shadow-md">
                     <span className="font-black text-[#FBF7E8] tracking-wide text-sm">
                       {builderTitle}
                     </span>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#F1DB51] text-[#123A27]">
+                    <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded bg-[#F1DB51] text-[#123A27]">
                       AUTO
                     </span>
                   </div>
@@ -546,7 +559,7 @@ export default function GeneratorPage() {
                 <button
                   type="button"
                   onClick={handleDownload}
-                  className="w-full py-4 px-6 rounded-2xl font-black text-base bg-[#F1DB51] hover:bg-[#E9B91E] text-[#123A27] shadow-xl transition active:scale-[0.99] flex items-center justify-center gap-2"
+                  className="w-full py-4 px-6 rounded-2xl font-black text-base bg-[#F1DB51] hover:bg-[#E9B91E] text-[#123A27] shadow-2xl transition active:scale-95 flex items-center justify-center gap-2"
                 >
                   <span className="text-xl">📥</span> Download PNG Builder ID
                 </button>
@@ -555,7 +568,7 @@ export default function GeneratorPage() {
                   type="button"
                   onClick={handleShareToX}
                   disabled={isSharing}
-                  className="w-full py-3.5 px-6 rounded-2xl font-bold text-sm bg-[#BF4173] hover:bg-[#A3345E] text-[#FBF7E8] transition active:scale-[0.99] flex items-center justify-center gap-2 border border-[#F1DB51]/30 disabled:opacity-50"
+                  className="w-full py-3.5 px-6 rounded-2xl font-bold text-sm bg-[#BF4173] hover:bg-[#A3345E] text-[#FBF7E8] transition active:scale-95 flex items-center justify-center gap-2 border border-[#F1DB51]/30 disabled:opacity-50"
                 >
                   {isSharing ? (
                     <>
@@ -573,7 +586,7 @@ export default function GeneratorPage() {
                 </button>
 
                 {shareSuccessUrl && (
-                  <div className="p-3 rounded-xl bg-[#123A27] border border-[#F1DB51]/30 text-xs flex items-center justify-between gap-2">
+                  <div className="p-3 rounded-xl bg-[#0B281A] border border-[#F1DB51]/30 text-xs flex items-center justify-between gap-2">
                     <span className="truncate text-[#DEEAE0] font-mono">{shareSuccessUrl}</span>
                     <button
                       type="button"
@@ -591,7 +604,7 @@ export default function GeneratorPage() {
             <div className="lg:col-span-6 flex flex-col items-center space-y-4">
               <div className="w-full flex items-center justify-between px-1">
                 <span className="text-xs font-mono text-[#DEEAE0] uppercase">
-                  Live Builder ID Preview
+                  LIVE BUILDER ID PREVIEW
                 </span>
                 <span className="text-xs font-mono text-[#F1DB51] flex items-center gap-1.5 font-bold">
                   <span className="w-2 h-2 rounded-full bg-[#F1DB51] animate-pulse" />
@@ -599,7 +612,7 @@ export default function GeneratorPage() {
                 </span>
               </div>
 
-              {/* Canvas Card Graphic View */}
+              {/* Canvas Card View Container */}
               <div className="w-full max-w-md aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl border-4 border-[#F1DB51] bg-[#123A27] relative group">
                 <canvas
                   ref={canvasRef}
@@ -614,8 +627,8 @@ export default function GeneratorPage() {
           </main>
         </div>
 
-        {/* Footer */}
-        <footer className="mt-16 pt-6 border-t border-[#FBF7E8]/15 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#DEEAE0] font-mono">
+        {/* FOOTER SECTION */}
+        <footer className="mt-16 pt-6 border-t border-[#FBF7E8]/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#DEEAE0] font-mono bg-[#123A27]/60 backdrop-blur-md px-4 py-4 rounded-2xl">
           <p>© 2026 Hacker House Goa • Organized by 2:47 PM Studio</p>
           <p>Goa, India • {BRAND_CONFIG.bountyTotal} • {BRAND_CONFIG.hashtag}</p>
         </footer>

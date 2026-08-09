@@ -12,8 +12,8 @@ export interface RenderCardOptions {
 }
 
 /**
- * Renders the Retro Tropical Goa Format B Builder ID Card onto the canvas.
- * Canvas resolution: 1200px x 1500px (4:5 ratio).
+ * Renders the Format B Builder ID Card onto the canvas.
+ * Canvas resolution: 1200px x 1500px (4:5 vertical ID ratio).
  */
 export async function renderBuilderCardCanvas({
   canvas,
@@ -48,68 +48,48 @@ export async function renderBuilderCardCanvas({
   // Clear canvas
   ctx.clearRect(0, 0, width, height);
 
-  // 1. BASE TROPICAL GREEN BACKGROUND
+  // 1. BASE BACKGROUND (Deep Forest `#123A27`)
   ctx.fillStyle = BRAND_CONFIG.colors.deepForest;
   ctx.fillRect(0, 0, width, height);
 
-  // Tropical Sun Radial Glow (Top Center Behind Photo)
-  const sunGlow = ctx.createRadialGradient(width / 2, 420, 40, width / 2, 420, 500);
-  sunGlow.addColorStop(0, "rgba(241, 219, 81, 0.25)");
-  sunGlow.addColorStop(0.6, "rgba(47, 104, 62, 0.15)");
-  sunGlow.addColorStop(1, "rgba(18, 58, 39, 0)");
-  ctx.fillStyle = sunGlow;
-  ctx.fillRect(0, 0, width, height);
-
-  // Pink Accent Radial Glow (Bottom Right)
-  const pinkGlow = ctx.createRadialGradient(1000, 1300, 40, 1000, 1300, 600);
-  pinkGlow.addColorStop(0, "rgba(191, 65, 115, 0.2)");
-  pinkGlow.addColorStop(1, "rgba(18, 58, 39, 0)");
-  ctx.fillStyle = pinkGlow;
-  ctx.fillRect(0, 0, width, height);
-
-  // Draw Background Artwork Layer (Goa Beach/Palms/Hills if loaded)
+  // 2. DRAW AUTHENTIC REFERENCE ARTWORK IF LOADED
   if (bgArtwork) {
-    ctx.save();
-    ctx.globalAlpha = 0.25;
-    ctx.drawImage(bgArtwork, 0, height - 700, width, 700);
-    ctx.restore();
+    ctx.drawImage(bgArtwork, 0, 0, width, height);
+  } else {
+    // Fallback radial sun gradient if asset pending
+    const sunGlow = ctx.createRadialGradient(width / 2, 400, 40, width / 2, 400, 500);
+    sunGlow.addColorStop(0, "rgba(241, 219, 81, 0.3)");
+    sunGlow.addColorStop(0.7, "rgba(47, 104, 62, 0.2)");
+    sunGlow.addColorStop(1, "rgba(18, 58, 39, 0)");
+    ctx.fillStyle = sunGlow;
+    ctx.fillRect(0, 0, width, height);
   }
 
-  // 2. MAIN BADGE CONTAINER
-  const cardMargin = 40;
+  // Subtle dark overlay to ensure high contrast for text layers
+  ctx.fillStyle = "rgba(18, 58, 39, 0.25)";
+  ctx.fillRect(0, 0, width, height);
+
+  // 3. CARD OUTER BORDER FRAME
+  const cardMargin = 36;
   const cardW = width - cardMargin * 2;
   const cardH = height - cardMargin * 2;
   const cardX = cardMargin;
   const cardY = cardMargin;
   const cardRadius = 36;
 
-  // Outer Shadow
-  ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
-  ctx.shadowBlur = 40;
-  ctx.shadowOffsetY = 15;
-
-  // Inner Card Solid Background (Deep Tropical Green)
-  ctx.fillStyle = BRAND_CONFIG.colors.primaryGreen;
-  drawRoundedRect(ctx, cardX, cardY, cardW, cardH, cardRadius);
-  ctx.fill();
-
-  // Reset Shadow
-  ctx.shadowBlur = 0;
-  ctx.shadowOffsetY = 0;
-
-  // Outer Border (Sun Yellow)
+  // Outer Border Stroke (Sun Yellow `#F1DB51`)
   ctx.strokeStyle = BRAND_CONFIG.colors.sunYellow;
   ctx.lineWidth = 6;
   drawRoundedRect(ctx, cardX, cardY, cardW, cardH, cardRadius);
   ctx.stroke();
 
-  // Inner Subtle Cream Border
-  ctx.strokeStyle = "rgba(251, 247, 232, 0.3)";
+  // Inner Cream Accent Border Line
+  ctx.strokeStyle = "rgba(251, 247, 232, 0.35)";
   ctx.lineWidth = 2;
   drawRoundedRect(ctx, cardX + 8, cardY + 8, cardW - 16, cardH - 16, cardRadius - 8);
   ctx.stroke();
 
-  // 3. HEADER SECTION
+  // 4. HEADER SECTION
   const headerY = cardY + 50;
 
   // Status Badge (Top Left Pill - Sun Yellow with Dark Text)
@@ -119,7 +99,7 @@ export async function renderBuilderCardCanvas({
   drawRoundedRect(ctx, statusX, statusY, 210, 36, 18);
   ctx.fill();
 
-  // Green Active Dot
+  // Active Green Dot
   ctx.fillStyle = BRAND_CONFIG.colors.deepForest;
   ctx.beginPath();
   ctx.arc(statusX + 18, statusY + 18, 5, 0, Math.PI * 2);
@@ -136,27 +116,19 @@ export async function renderBuilderCardCanvas({
   ctx.textAlign = "right";
   ctx.fillText(BRAND_CONFIG.organizer, cardX + cardW - 50, statusY + 22);
 
-  // Main Event Title: "HACKER HOUSE GOA 2026"
+  // Event Headline: "HACKER HOUSE GOA 2026"
   const titleY = headerY + 75;
   ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
   ctx.font = "900 46px system-ui, -apple-system, 'Space Grotesk', sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(BRAND_CONFIG.eventName, width / 2, titleY);
 
-  // Subtitle Tag: "BUILDER RESIDENCY • GOA, INDIA"
+  // Subtitle: "BUILDER RESIDENCY • GOA, INDIA"
   ctx.fillStyle = BRAND_CONFIG.colors.sunYellow;
   ctx.font = "bold 16px system-ui, -apple-system, sans-serif";
   ctx.fillText(`${BRAND_CONFIG.eventTag} • ${BRAND_CONFIG.location}`, width / 2, titleY + 30);
 
-  // Decorative Sun Disc behind photo
-  const sunX = width / 2;
-  const sunY = titleY + 310;
-  ctx.fillStyle = "rgba(241, 219, 81, 0.15)";
-  ctx.beginPath();
-  ctx.arc(sunX, sunY, 300, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 4. PHOTO CONTAINER
+  // 5. PHOTO CONTAINER
   const photoSize = 500;
   const photoX = (width - photoSize) / 2;
   const photoY = titleY + 60;
@@ -197,7 +169,7 @@ export async function renderBuilderCardCanvas({
     ctx.fillText("YOUR PHOTO HERE", photoX + photoSize / 2, photoY + photoSize / 2);
   }
 
-  // Subtle Edge Shadow
+  // Subtle Inner Edge Shadow
   const photoVignette = ctx.createLinearGradient(photoX, photoY, photoX, photoY + photoSize);
   photoVignette.addColorStop(0, "rgba(0, 0, 0, 0.15)");
   photoVignette.addColorStop(0.8, "rgba(0, 0, 0, 0)");
@@ -207,10 +179,10 @@ export async function renderBuilderCardCanvas({
 
   ctx.restore(); // Restore clip context
 
-  // 5. USER INFO SECTION
+  // 6. USER INFO SECTION
   const infoStartY = photoY + photoSize + 55;
 
-  // Builder Name
+  // Builder Name (Warm Cream `#FBF7E8`, auto-scaled font)
   const displayName = (name || "ANONYMOUS BUILDER").trim().toUpperCase();
   let nameFontSize = 52;
   ctx.font = `900 ${nameFontSize}px system-ui, -apple-system, 'Space Grotesk', sans-serif`;
@@ -223,7 +195,7 @@ export async function renderBuilderCardCanvas({
   ctx.textAlign = "center";
   ctx.fillText(displayName, width / 2, infoStartY);
 
-  // Builder Title Badge Pill (Goa Pink or Sun Yellow)
+  // Builder Title Badge Pill (Goa Pink `#BF4173`)
   const finalTitle = builderTitleOverride || generateBuilderTitle(stack, name);
   const titleYPos = infoStartY + 50;
 
@@ -233,18 +205,15 @@ export async function renderBuilderCardCanvas({
   const pillHeight = 52;
   const pillX = (width - pillWidth) / 2;
 
-  // Pill Fill: Goa Pink `#BF4173`
   ctx.fillStyle = BRAND_CONFIG.colors.goaPink;
   drawRoundedRect(ctx, pillX, titleYPos - 36, pillWidth, pillHeight, 26);
   ctx.fill();
 
-  // Pill Yellow Outline
   ctx.strokeStyle = BRAND_CONFIG.colors.sunYellow;
   ctx.lineWidth = 2;
   drawRoundedRect(ctx, pillX, titleYPos - 36, pillWidth, pillHeight, 26);
   ctx.stroke();
 
-  // Pill Text: Warm Cream
   ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
   ctx.font = "900 22px system-ui, -apple-system, sans-serif";
   ctx.textAlign = "center";
@@ -258,7 +227,7 @@ export async function renderBuilderCardCanvas({
   const stackBoxH = 50;
   const stackBoxX = (width - stackBoxW) / 2;
 
-  ctx.fillStyle = "rgba(18, 58, 39, 0.7)";
+  ctx.fillStyle = "rgba(18, 58, 39, 0.85)";
   drawRoundedRect(ctx, stackBoxX, stackYPos - 34, stackBoxW, stackBoxH, 12);
   ctx.fill();
 
@@ -275,7 +244,6 @@ export async function renderBuilderCardCanvas({
   ctx.fillStyle = BRAND_CONFIG.colors.warmCream;
   ctx.font = "600 16px system-ui, sans-serif";
 
-  // Truncate stack if too long
   let stackText = displayStack;
   const maxStackW = 630;
   if (ctx.measureText(stackText).width > maxStackW) {
@@ -286,11 +254,11 @@ export async function renderBuilderCardCanvas({
   }
   ctx.fillText(stackText, stackBoxX + 160, stackYPos);
 
-  // 6. FOOTER & METADATA BARCODE
+  // 7. FOOTER & METADATA BARCODE
   const footerY = cardY + cardH - 50;
 
   // Divider Line
-  ctx.strokeStyle = "rgba(251, 247, 232, 0.25)";
+  ctx.strokeStyle = "rgba(251, 247, 232, 0.3)";
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(cardX + 40, footerY - 50);
@@ -318,7 +286,7 @@ export async function renderBuilderCardCanvas({
   ctx.font = "12px system-ui, sans-serif";
   ctx.fillText("247 SELECTED BUILDERS", cardX + cardW - 50, footerY + 10);
 
-  // Center Decorative Tech Barcode Graphic
+  // Center Security Barcode Graphic
   const barcodeX = width / 2 - 80;
   const barcodeY = footerY - 25;
   ctx.fillStyle = BRAND_CONFIG.colors.warmCream;

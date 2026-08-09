@@ -7,7 +7,7 @@ export const BRAND_CONFIG = {
   hashtag: "#FrameInGoa",
   bountyTotal: "₹46.5L IN BOUNTIES",
   colors: {
-    // Primary & Dark Greens
+    // Primary Greens
     primaryGreen: "#2F683E",
     deepForest: "#123A27",
     goaGreen: "#3C7A4E",
@@ -15,7 +15,7 @@ export const BRAND_CONFIG = {
     
     // Accents
     sunYellow: "#F1DB51",
-    warmGolden: "#E9B91E",
+    goldenYellow: "#E9B91E",
     goaPink: "#BF4173",
     
     // Light & Muted
@@ -23,7 +23,7 @@ export const BRAND_CONFIG = {
     softSage: "#DEEAE0",
     textDark: "#1B2920",
     
-    // Borders & Overlays
+    // Transparency borders
     borderYellow: "rgba(241, 219, 81, 0.4)",
     borderCream: "rgba(251, 247, 232, 0.25)",
   },
@@ -132,7 +132,6 @@ export const FALLBACK_TITLES = [
   "🚀 HIGH-OCTANE SHIPPER"
 ];
 
-// Hash function to pick deterministically from title list
 export function simpleHash(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -142,9 +141,6 @@ export function simpleHash(str: string): number {
   return Math.abs(hash);
 }
 
-/**
- * Returns a Builder Title based on tech stack and user name
- */
 export function generateBuilderTitle(stack: string, name: string): string {
   const lowerStack = (stack || "").toLowerCase().trim();
   const lowerName = (name || "").toLowerCase().trim();
@@ -155,7 +151,6 @@ export function generateBuilderTitle(stack: string, name: string): string {
     return FALLBACK_TITLES[hash % FALLBACK_TITLES.length];
   }
 
-  // Find matching bucket
   for (const bucket of TITLE_BUCKETS) {
     const matched = bucket.keywords.some((kw) => lowerStack.includes(kw));
     if (matched) {
