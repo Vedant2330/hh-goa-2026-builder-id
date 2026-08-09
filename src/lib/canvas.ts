@@ -133,10 +133,10 @@ export async function renderBuilderCardCanvas({
   ctx.font = "bold 16px system-ui, -apple-system, sans-serif";
   ctx.fillText(`${BRAND_CONFIG.eventTag} • ${BRAND_CONFIG.location}`, width / 2, subtitleY);
 
-  // 5. PROFILE PHOTO MODULE
+  // 5. PROFILE PHOTO MODULE (Shifted up 8px for identity breathing room)
   const photoSize = 470;
   const photoX = (width - photoSize) / 2; // 365px
-  const photoY = 265;
+  const photoY = 257; // was 265
   const photoRadius = 24;
 
   // Photo Outer Frame (Cream & Sunset Yellow)
@@ -183,10 +183,19 @@ export async function renderBuilderCardCanvas({
 
   ctx.restore();
 
-  // 6. IDENTITY BLOCK WITH RESTRUCTURED VERTICAL RHYTHM & INTENTIONAL GAPS
+  // 6. IDENTITY BLOCK — INTENTIONAL VERTICAL RHYTHM
+  //
+  // Photo outer frame bottom: 739px
+  //   ↓ 26px visual gap
+  // Name baseline: 786px  (cap height ~21px, so visual top ≈ 765px)
+  //   ↓ 19px visual gap
+  // Pill top: 806px, pill center: 830px, pill bottom: 854px
+  //   ↓ 22px visual gap
+  // Stack box top: 876px, stack box bottom: 924px
+  //   ↓ 316px open artwork/sunset
+  // Bottom panel: 1240px
 
-  // Gap 1: Photo Outer Frame Bottom (747px) -> Builder Name Baseline (807px): ~24px gap above font cap height
-  const nameBaselineY = 807;
+  const nameBaselineY = 786;
   const displayName = (name || "ANONYMOUS BUILDER").trim().toUpperCase();
   let nameFontSize = 48;
   ctx.font = `900 ${nameFontSize}px system-ui, -apple-system, 'Space Grotesk', sans-serif`;
@@ -199,10 +208,10 @@ export async function renderBuilderCardCanvas({
   ctx.textAlign = "center";
   ctx.fillText(displayName, width / 2, nameBaselineY);
 
-  // Gap 2: Builder Name -> Title Badge Pill (~18px gap)
-  // Pill top at 828px, pill center y at 852px, pill height 48px (bottom at 876px)
+  // Gap 2: Builder Name (786px) -> Title Badge Pill top (806px): 19px gap
+  // Pill center at 830px, pill height 48px (top 806, bottom 854)
   const finalTitle = builderTitleOverride || generateBuilderTitle(stack, name);
-  const pillCenterY = 852;
+  const pillCenterY = 830;
 
   ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
   const titleMetrics = ctx.measureText(finalTitle);
@@ -224,15 +233,15 @@ export async function renderBuilderCardCanvas({
   ctx.textAlign = "center";
   ctx.fillText(finalTitle, width / 2, pillCenterY + 7);
 
-  // Gap 3: Title Badge Pill Bottom (876px) -> Stack/Role Box Container Top (898px): ~22px gap
-  // Box top at 898px, height 48px (bottom at 946px), text baseline at 931px
-  const stackBoxTopY = 898;
+  // Gap 3: Title Badge Pill Bottom (854px) -> Stack/Role Box Top (876px): 22px gap
+  // Box top at 876px, height 48px (bottom at 924px), text baseline at 909px
+  const stackBoxTopY = 876;
   const displayStack = (stack || "Full-Stack Developer / AI Builder").trim();
 
   const stackBoxW = 880;
   const stackBoxH = 48;
   const stackBoxX = (width - stackBoxW) / 2; // 160px
-  const stackTextBaselineY = stackBoxTopY + 33; // 931px
+  const stackTextBaselineY = stackBoxTopY + 33; // 909px
 
   ctx.fillStyle = "rgba(7, 59, 41, 0.9)";
   drawRoundedRect(ctx, stackBoxX, stackBoxTopY, stackBoxW, stackBoxH, 12);
@@ -261,8 +270,8 @@ export async function renderBuilderCardCanvas({
   }
   ctx.fillText(stackText, stackBoxX + 164, stackTextBaselineY);
 
-  // 7. LARGE OPEN GOA ARTWORK / SUNSET BREATHING SPACE (y: 946px to 1240px)
-  // ~294px of open breathing space where the tropical landscape, ocean, sunset and palm trees remain unobstructed.
+  // 7. LARGE OPEN GOA ARTWORK / SUNSET BREATHING SPACE (y: 924px to 1240px)
+  // ~316px of open breathing space where the tropical landscape, ocean, sunset and palm trees remain unobstructed.
 
   // 8. BOTTOM CREDENTIAL PANEL & CENTERED BARCODE (panelY: 1240px, panelH: 156px)
   const panelY = 1240;
