@@ -23,6 +23,7 @@ export default function GeneratorPage() {
   const [imageError, setImageError] = useState<string | null>(null);
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(DEFAULT_ADJUSTMENTS);
   const [showAdjustments, setShowAdjustments] = useState<boolean>(false);
+  const [isMobileAdjustOpen, setIsMobileAdjustOpen] = useState<boolean>(false);
 
   // Card Background Artwork (`card-bg.png`)
   const [cardBgArtwork, setCardBgArtwork] = useState<HTMLImageElement | null>(null);
@@ -34,6 +35,7 @@ export default function GeneratorPage() {
 
   // Refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const modalCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const generatorRef = useRef<HTMLDivElement | null>(null);
 
@@ -74,16 +76,28 @@ export default function GeneratorPage() {
 
   // In-memory instant canvas redraw (0ms delay, no reloads, no server requests)
   const triggerRender = useCallback(async () => {
-    if (!canvasRef.current) return;
-    await renderBuilderCardCanvas({
-      canvas: canvasRef.current,
+    const renderOptions = {
       userImage,
       name,
       stack,
       builderTitleOverride: builderTitle,
       adjustments,
       bgArtwork: cardBgArtwork,
-    });
+    };
+
+    if (canvasRef.current) {
+      await renderBuilderCardCanvas({
+        canvas: canvasRef.current,
+        ...renderOptions,
+      });
+    }
+
+    if (modalCanvasRef.current) {
+      await renderBuilderCardCanvas({
+        canvas: modalCanvasRef.current,
+        ...renderOptions,
+      });
+    }
   }, [userImage, name, stack, builderTitle, adjustments, cardBgArtwork]);
 
   useEffect(() => {
@@ -409,86 +423,103 @@ export default function GeneratorPage() {
                   </p>
                 )}
 
-                {/* Collapsible Photo Adjustment Controls */}
+                {/* Photo Uploaded Status & Mobile Adjustment Launch Button */}
                 {userImage && (
-                  <div className="pt-2 border-t border-[#FBF7E8]/15">
-                    <button
-                      type="button"
-                      onClick={() => setShowAdjustments(!showAdjustments)}
-                      className="text-xs font-bold text-[#F1DB51] hover:underline flex items-center justify-between w-full py-1"
-                    >
-                      <span>⚙️ Optional Photo Adjustment (Zoom & Pan)</span>
-                      <span>{showAdjustments ? "▲ Hide" : "▼ Adjust"}</span>
-                    </button>
+                  <div className="pt-2 border-t border-[#FBF7E8]/15 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#00FF87] flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#00FF87]" />
+                        Photo uploaded ✓
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsMobileAdjustOpen(true)}
+                        className="px-3.5 py-1.5 rounded-xl bg-[#F1DB51] hover:bg-[#E9B91E] text-[#123A27] font-black text-xs transition shadow-md flex items-center gap-1.5"
+                      >
+                        <span>⚙️</span> Adjust Photo
+                      </button>
+                    </div>
 
-                    {showAdjustments && (
-                      <div className="mt-3 p-4 rounded-xl bg-[#0B281A] border border-[#FBF7E8]/20 space-y-4 text-xs">
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-[#DEEAE0]">
-                            <span>Zoom Level</span>
-                            <span className="font-mono">{adjustments.zoom.toFixed(1)}x</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="1.0"
-                            max="3.0"
-                            step="0.05"
-                            value={adjustments.zoom}
-                            onChange={(e) =>
-                              setAdjustments({
-                                ...adjustments,
-                                zoom: parseFloat(e.target.value),
-                              })
-                            }
-                            className="w-full accent-[#F1DB51]"
-                          />
-                        </div>
+                    {/* Collapsible Photo Adjustment Controls for Desktop */}
+                    <div className="hidden lg:block">
+                      <button
+                        type="button"
+                        onClick={() => setShowAdjustments(!showAdjustments)}
+                        className="text-xs font-bold text-[#F1DB51] hover:underline flex items-center justify-between w-full py-1"
+                      >
+                        <span>⚙️ Desktop Photo Adjustment (Zoom & Pan)</span>
+                        <span>{showAdjustments ? "▲ Hide" : "▼ Adjust"}</span>
+                      </button>
 
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[#DEEAE0] block mb-1">Pan Left / Right</label>
+                      {showAdjustments && (
+                        <div className="mt-3 p-4 rounded-xl bg-[#0B281A] border border-[#FBF7E8]/20 space-y-4 text-xs">
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-[#DEEAE0]">
+                              <span>Zoom Level</span>
+                              <span className="font-mono">{adjustments.zoom.toFixed(1)}x</span>
+                            </div>
                             <input
                               type="range"
-                              min="-200"
-                              max="200"
-                              value={adjustments.panX}
+                              min="1.0"
+                              max="3.0"
+                              step="0.05"
+                              value={adjustments.zoom}
                               onChange={(e) =>
                                 setAdjustments({
                                   ...adjustments,
-                                  panX: parseInt(e.target.value, 10),
+                                  zoom: parseFloat(e.target.value),
                                 })
                               }
                               className="w-full accent-[#F1DB51]"
                             />
                           </div>
 
-                          <div>
-                            <label className="text-[#DEEAE0] block mb-1">Pan Up / Down</label>
-                            <input
-                              type="range"
-                              min="-200"
-                              max="200"
-                              value={adjustments.panY}
-                              onChange={(e) =>
-                                setAdjustments({
-                                  ...adjustments,
-                                  panY: parseInt(e.target.value, 10),
-                                })
-                              }
-                              className="w-full accent-[#F1DB51]"
-                            />
-                          </div>
-                        </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-[#DEEAE0] block mb-1">Pan Left / Right</label>
+                              <input
+                                type="range"
+                                min="-200"
+                                max="200"
+                                value={adjustments.panX}
+                                onChange={(e) =>
+                                  setAdjustments({
+                                    ...adjustments,
+                                    panX: parseInt(e.target.value, 10),
+                                  })
+                                }
+                                className="w-full accent-[#F1DB51]"
+                              />
+                            </div>
 
-                        <button
-                          type="button"
-                          onClick={() => setAdjustments(DEFAULT_ADJUSTMENTS)}
-                          className="px-3 py-1.5 rounded-lg bg-[#2F683E] hover:bg-[#3C7A4E] text-[#FBF7E8] transition font-mono text-[11px]"
-                        >
-                          🔄 Reset Auto-Crop
-                        </button>
-                      </div>
-                    )}
+                            <div>
+                              <label className="text-[#DEEAE0] block mb-1">Pan Up / Down</label>
+                              <input
+                                type="range"
+                                min="-200"
+                                max="200"
+                                value={adjustments.panY}
+                                onChange={(e) =>
+                                  setAdjustments({
+                                    ...adjustments,
+                                    panY: parseInt(e.target.value, 10),
+                                  })
+                                }
+                                className="w-full accent-[#F1DB51]"
+                              />
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setAdjustments(DEFAULT_ADJUSTMENTS)}
+                            className="px-3 py-1.5 rounded-lg bg-[#2F683E] hover:bg-[#3C7A4E] text-[#FBF7E8] transition font-mono text-[11px]"
+                          >
+                            🔄 Reset Auto-Crop
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -626,6 +657,123 @@ export default function GeneratorPage() {
             </div>
           </main>
         </div>
+
+        {/* DEDICATED MOBILE ADJUST PHOTO WORKSPACE MODAL / BOTTOM-SHEET */}
+        {isMobileAdjustOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+            <div className="w-full max-w-md max-h-[92vh] flex flex-col bg-[#123A27] border-2 border-[#F1DB51] rounded-3xl overflow-hidden shadow-2xl text-[#FBF7E8]">
+              {/* Modal Top Bar */}
+              <div className="flex items-center justify-between p-4 border-b border-[#FBF7E8]/20 bg-[#0B281A]">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileAdjustOpen(false)}
+                  className="text-xs font-bold text-[#DEEAE0] hover:text-[#F1DB51] flex items-center gap-1 transition"
+                >
+                  ← Back
+                </button>
+                <h4 className="font-black text-base text-[#FBF7E8]">ADJUST PHOTO</h4>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileAdjustOpen(false)}
+                  className="px-3 py-1 rounded-xl bg-[#F1DB51] text-[#123A27] font-black text-xs hover:bg-[#E9B91E] transition"
+                >
+                  Done ✓
+                </button>
+              </div>
+
+              {/* Modal Body: Scaled Live Canvas + Controls in Viewport */}
+              <div className="p-4 overflow-y-auto space-y-4 flex-1 flex flex-col items-center">
+                {/* Live Card Preview (Same rendering engine!) */}
+                <div className="w-full max-w-[280px] sm:max-w-[320px] aspect-[4/5] rounded-2xl overflow-hidden border-2 border-[#F1DB51] bg-[#123A27] shadow-xl relative shrink-0">
+                  <canvas
+                    ref={modalCanvasRef}
+                    className="w-full h-full object-contain display-block"
+                  />
+                </div>
+
+                {/* Adjust Sliders */}
+                <div className="w-full p-4 rounded-2xl bg-[#0B281A] border border-[#FBF7E8]/15 space-y-4 text-xs">
+                  {/* Zoom */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[#DEEAE0] font-semibold">
+                      <span>Zoom Level</span>
+                      <span className="font-mono text-[#F1DB51]">{adjustments.zoom.toFixed(2)}x</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1.0"
+                      max="3.0"
+                      step="0.05"
+                      value={adjustments.zoom}
+                      onChange={(e) =>
+                        setAdjustments({
+                          ...adjustments,
+                          zoom: parseFloat(e.target.value),
+                        })
+                      }
+                      className="w-full accent-[#F1DB51]"
+                    />
+                  </div>
+
+                  {/* Pan X / Y */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[#DEEAE0] font-semibold block mb-1">Pan Left / Right</label>
+                      <input
+                        type="range"
+                        min="-200"
+                        max="200"
+                        value={adjustments.panX}
+                        onChange={(e) =>
+                          setAdjustments({
+                            ...adjustments,
+                            panX: parseInt(e.target.value, 10),
+                          })
+                        }
+                        className="w-full accent-[#F1DB51]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[#DEEAE0] font-semibold block mb-1">Pan Up / Down</label>
+                      <input
+                        type="range"
+                        min="-200"
+                        max="200"
+                        value={adjustments.panY}
+                        onChange={(e) =>
+                          setAdjustments({
+                            ...adjustments,
+                            panY: parseInt(e.target.value, 10),
+                          })
+                        }
+                        className="w-full accent-[#F1DB51]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setAdjustments(DEFAULT_ADJUSTMENTS)}
+                      className="px-3.5 py-2 rounded-xl bg-[#2F683E] hover:bg-[#3C7A4E] text-[#FBF7E8] font-bold transition text-xs"
+                    >
+                      🔄 Reset Auto-Crop
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsMobileAdjustOpen(false)}
+                      className="px-4 py-2 rounded-xl bg-[#F1DB51] hover:bg-[#E9B91E] text-[#123A27] font-black transition text-xs shadow-md"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* FOOTER SECTION */}
         <footer className="mt-16 pt-6 border-t border-[#FBF7E8]/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#DEEAE0] font-mono bg-[#123A27]/60 backdrop-blur-md px-4 py-4 rounded-2xl">
