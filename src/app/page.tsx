@@ -206,78 +206,75 @@ export default function GeneratorPage() {
     );
   };
 
-  // Share to X Handler
+  // Share to X Handler (Popup-Safe, Auto-Downloads PNG + Opens X Composer with prefilled text)
   const handleShareToX = async () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const formattedName = (name || "Anonymous Builder").trim();
+    const activeTitle = builderTitle || "Builder";
+    const tweetCaption = `Just got my Hacker House Goa 2026 Builder ID 🌴⚡\nBuilder: ${formattedName} (${activeTitle})\n${BRAND_CONFIG.hashtag} @247pmstudio`;
+    const tweetIntentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetCaption)}`;
 
     setIsSharing(true);
-    setShareSuccessUrl(null);
 
     try {
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/png", 1.0)
-      );
+      // 1. Auto-download PNG file synchronously for the user
+      handleDownload();
 
-      if (!blob) throw new Error("Could not generate card image.");
-
-      const file = new File([blob], "HH_Goa_2026_Builder_ID.png", {
-        type: "image/png",
-      });
-
-      const caption = `Just built my HH Goa 2026 Builder ID 🚀 ${BRAND_CONFIG.hashtag} @247pmstudio`;
-
-      // Web Share API Primary Path
-      if (
-        typeof navigator !== "undefined" &&
-        navigator.canShare &&
-        navigator.canShare({ files: [file] })
-      ) {
+      // 2. Mobile Native Web Share API check
+      let sharedViaWebShare = false;
+      if (canvas && typeof navigator !== "undefined" && navigator.canShare) {
         try {
-          await navigator.share({
-            files: [file],
-            title: "HH Goa 2026 Builder ID",
-            text: caption,
-          });
-          setIsSharing(false);
-          return;
+          const blob = await new Promise<Blob | null>((resolve) =>
+            canvas.toBlob(resolve, "image/png", 1.0)
+          );
+          if (blob) {
+            const file = new File([blob], `HH_Goa_2026_ID_${formattedName.replace(/[^a-z0-9]/gi, "_")}.png`, {
+              type: "image/png",
+            });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: "HH Goa 2026 Builder ID",
+                text: tweetCaption,
+              });
+              sharedViaWebShare = true;
+            }
+          }
         } catch (shareErr) {
           if (shareErr instanceof Error && shareErr.name === "AbortError") {
             setIsSharing(false);
             return;
           }
+          console.warn("Mobile Web Share fallback to window.open", shareErr);
         }
       }
 
-      // Desktop Fallback: Upload to /api/share -> Unique /s/[id] page
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/share", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.shareUrl) {
-        throw new Error(data.error || "Failed to generate share link.");
+      // 3. Desktop / Web Fallback: Open X post composer directly (popup-safe!)
+      if (!sharedViaWebShare) {
+        window.open(tweetIntentUrl, "_blank", "noopener,noreferrer");
       }
 
-      setShareSuccessUrl(data.shareUrl);
-
-      const tweetText = encodeURIComponent(caption);
-      const tweetIntentUrl = `https://twitter.com/intent/tweet?text=${tweetText}&url=${encodeURIComponent(
-        data.shareUrl
-      )}`;
-
+      // 4. Background upload for share URL link generation (non-blocking)
+      if (canvas) {
+        canvas.toBlob(async (blob) => {
+          if (!blob) return;
+          try {
+            const formData = new FormData();
+            formData.append("file", blob, "HH_Goa_2026_Builder_ID.png");
+            const res = await fetch("/api/share", { method: "POST", body: formData });
+            const data = await res.json();
+            if (res.ok && data.shareUrl) {
+              setShareSuccessUrl(data.shareUrl);
+            }
+          } catch (err) {
+            console.warn("Background share link generation failed:", err);
+          }
+        }, "image/png", 1.0);
+      }
+    } catch (err) {
+      console.error("Share error:", err);
+      // Fallback to opening X composer directly
       window.open(tweetIntentUrl, "_blank", "noopener,noreferrer");
-    } catch (err: unknown) {
-      console.error(err);
-      alert(
-        err instanceof Error
-          ? err.message
-          : "Failed to share card. Please download the PNG directly!"
-      );
     } finally {
       setIsSharing(false);
     }
