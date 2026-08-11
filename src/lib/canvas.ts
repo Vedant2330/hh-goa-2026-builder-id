@@ -183,19 +183,19 @@ export async function renderBuilderCardCanvas({
 
   ctx.restore();
 
-  // 6. IDENTITY BLOCK — BALANCED VERTICAL RHYTHM & STRENGTHENED STACK FIELD
+  // 6. IDENTITY BLOCK & STRENGTHENED STACK/ROLE CREDENTIAL MODULE
   //
   // Photo outer frame bottom: 739px
-  //   ↓ ~26px visual gap
-  // Name baseline: 796px (font top ~764px)
-  //   ↓ ~24px visual gap
+  //   ↓ ~21px gap
+  // Name baseline: 792px (font top ~760px)
+  //   ↓ ~28px gap
   // Title Pill top: 820px, center: 844px, bottom: 868px (height 48px)
-  //   ↓ ~26px visual gap
-  // Stack Box top: 894px, center: 921px, bottom: 948px (height 54px)
-  //   ↓ ~292px open artwork/sunset space
+  //   ↓ ~38px gap
+  // Stack Box top: 906px, center: 940px, bottom: 974px (height 68px, two-line layout)
+  //   ↓ ~266px open artwork/sunset space
   // Bottom panel: 1240px
 
-  const nameBaselineY = 796;
+  const nameBaselineY = 792;
   const displayName = (name || "ANONYMOUS BUILDER").trim().toUpperCase();
   let nameFontSize = 48;
   ctx.font = `900 ${nameFontSize}px system-ui, -apple-system, 'Space Grotesk', sans-serif`;
@@ -232,43 +232,44 @@ export async function renderBuilderCardCanvas({
   ctx.textAlign = "center";
   ctx.fillText(finalTitle, width / 2, pillCenterY + 7);
 
-  // Stack / Role Field Box — Restyled for stronger credential presence & better vertical padding
-  const stackBoxTopY = 894;
+  // Stack / Role Field Box — Positioned in upper-middle transition zone with two-line layout & 68px height
+  const stackBoxTopY = 906;
   const displayStack = (stack || "Full-Stack Developer / AI Builder").trim();
 
-  const stackBoxW = 880;
-  const stackBoxH = 54; // Height increased from 48px to 54px for improved vertical padding
-  const stackBoxX = (width - stackBoxW) / 2; // 160px
-  const stackTextBaselineY = stackBoxTopY + 34; // 928px
+  const stackBoxW = 860;
+  const stackBoxH = 68; // Height increased to 68px for two-line room & credential presence
+  const stackBoxX = (width - stackBoxW) / 2; // 170px
 
   // Translucent Dark Green fill to let Goa background artwork remain visible
-  ctx.fillStyle = "rgba(7, 59, 41, 0.82)";
-  drawRoundedRect(ctx, stackBoxX, stackBoxTopY, stackBoxW, stackBoxH, 14);
+  ctx.fillStyle = "rgba(7, 59, 41, 0.85)";
+  drawRoundedRect(ctx, stackBoxX, stackBoxTopY, stackBoxW, stackBoxH, 16);
   ctx.fill();
 
-  // Subtle Sunset Yellow & Jungle Green border for a refined credential badge feel
-  ctx.strokeStyle = "rgba(246, 217, 40, 0.4)";
+  // Subtle Sunset Yellow border for refined event credential styling
+  ctx.strokeStyle = "rgba(246, 217, 40, 0.45)";
   ctx.lineWidth = 2;
-  drawRoundedRect(ctx, stackBoxX, stackBoxTopY, stackBoxW, stackBoxH, 14);
+  drawRoundedRect(ctx, stackBoxX, stackBoxTopY, stackBoxW, stackBoxH, 16);
   ctx.stroke();
 
+  // Label Line 1 (Sunset Yellow `#F6D928`)
   ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
-  ctx.font = "900 14px system-ui, sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText("STACK / ROLE:", stackBoxX + 24, stackTextBaselineY);
+  ctx.font = "900 12px system-ui, -apple-system, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("STACK / ROLE", width / 2, stackBoxTopY + 25);
 
+  // Value Line 2 (Warm Off-White `#FFF7E6`)
   ctx.fillStyle = BRAND_CONFIG.colors.warmOffWhite;
-  ctx.font = "600 16px system-ui, sans-serif";
+  ctx.font = "bold 17px system-ui, -apple-system, sans-serif";
 
   let stackText = displayStack;
-  const maxStackW = 630;
+  const maxStackW = 800;
   if (ctx.measureText(stackText).width > maxStackW) {
     while (stackText.length > 5 && ctx.measureText(stackText + "...").width > maxStackW) {
       stackText = stackText.slice(0, -1);
     }
     stackText += "...";
   }
-  ctx.fillText(stackText, stackBoxX + 164, stackTextBaselineY);
+  ctx.fillText(stackText, width / 2, stackBoxTopY + 51);
 
   // 7. LARGE OPEN GOA ARTWORK / SUNSET BREATHING SPACE (y: 924px to 1240px)
   // ~316px of open breathing space where the tropical landscape, ocean, sunset and palm trees remain unobstructed.
