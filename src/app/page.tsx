@@ -202,7 +202,7 @@ export default function GeneratorPage() {
     );
   };
 
-  // Mobile Native Share Sheet Handler
+  // Mobile Native Share Sheet Handler (Preserves attached image on mobile)
   const handleMobileShareToX = async (tweetCaption: string) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -233,7 +233,6 @@ export default function GeneratorPage() {
         }
       }
 
-      // Fallback if mobile native share is unhandled
       const tweetIntentUrl = `https://x.com/intent/post?text=${encodeURIComponent(tweetCaption)}`;
       window.open(tweetIntentUrl, "_blank", "noopener,noreferrer");
     } catch (shareErr) {
@@ -248,12 +247,13 @@ export default function GeneratorPage() {
     }
   };
 
-  // Main Share to X Handler (Desktop: Synchronous popup-safe X composer launch + auto PNG download; Mobile: Native share sheet)
-  const handleShareToX = () => {
+  // Main Share to X Handler
+  // Desktop: Generates PNG -> Stores in /api/share -> Launches X Intent with unique /s/[id] link (X unfurls actual 1200x1500 Builder ID OG Image card!)
+  // Mobile: Preserves native share sheet with attached PNG
+  const handleShareToX = async () => {
+    const canvas = canvasRef.current;
     const formattedName = (name || "Anonymous Builder").trim();
-    const activeTitle = builderTitle || "Builder";
-    const tweetCaption = `Just got my Hacker House Goa 2026 Builder ID 🌴⚡\nBuilder: ${formattedName} (${activeTitle})\n${BRAND_CONFIG.hashtag} @247pmstudio`;
-    const tweetIntentUrl = `https://x.com/intent/post?text=${encodeURIComponent(tweetCaption)}`;
+    const baseCaption = `Just got my Hacker House Goa 2026 Builder ID 🌴⚡\nBuilder: ${formattedName}\n${BRAND_CONFIG.hashtag}`;
 
     const isMobileDevice =
       typeof window !== "undefined" &&
@@ -261,35 +261,67 @@ export default function GeneratorPage() {
         (window.innerWidth < 768 && typeof navigator !== "undefined" && "canShare" in navigator));
 
     if (isMobileDevice) {
-      handleMobileShareToX(tweetCaption);
+      handleMobileShareToX(baseCaption);
       return;
     }
 
-    // DESKTOP: SYNCHRONOUS window.open call right inside click handler (completely popup-safe!)
-    window.open(tweetIntentUrl, "_blank", "noopener,noreferrer");
+    if (!canvas) return;
 
-    // Automatically trigger PNG download for desktop user
-    handleDownload();
+    // Desktop Flow:
+    setIsSharing(true);
+    setShareStatusText("Preparing your share…");
 
-    // Display non-blocking guide modal
-    setShowXShareModal(true);
+    // Open popup window synchronously on user click to avoid popup blockers
+    const win = window.open("about:blank", "_blank");
 
-    // Background share URL link generation for fallback preview (non-blocking)
-    if (canvasRef.current) {
-      canvasRef.current.toBlob(async (blob) => {
-        if (!blob) return;
-        try {
-          const formData = new FormData();
-          formData.append("file", blob, "HH_Goa_2026_Builder_ID.png");
-          const res = await fetch("/api/share", { method: "POST", body: formData });
-          const data = await res.json();
-          if (res.ok && data.shareUrl) {
-            setShareSuccessUrl(data.shareUrl);
-          }
-        } catch (err) {
-          console.warn("Background share link generation:", err);
-        }
-      }, "image/png", 1.0);
+    try {
+      // 1. Generate current 1200x1500 PNG blob
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/png", 1.0)
+      );
+
+      if (!blob) throw new Error("Could not generate card image.");
+
+      // 2. Upload PNG blob to /api/share route
+      const formData = new FormData();
+      formData.append("file", blob, "HH_Goa_2026_Builder_ID.png");
+
+      const res = await fetch("/api/share", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.shareUrl) {
+        throw new Error(data.error || "Failed to generate share link.");
+      }
+
+      setShareSuccessUrl(data.shareUrl);
+
+      // 3. Open X post composer with dynamic caption + unique share URL (X unfurls actual generated Builder ID OG Image!)
+      const tweetIntentUrl = `https://x.com/intent/post?text=${encodeURIComponent(
+        baseCaption
+      )}&url=${encodeURIComponent(data.shareUrl)}`;
+
+      if (win) {
+        win.location.href = tweetIntentUrl;
+      } else {
+        window.open(tweetIntentUrl, "_blank", "noopener,noreferrer");
+      }
+
+      // Also trigger local PNG download for user convenience
+      handleDownload();
+    } catch (err) {
+      console.error("Desktop Share to X Error:", err);
+      const fallbackUrl = `https://x.com/intent/post?text=${encodeURIComponent(baseCaption)}`;
+      if (win) {
+        win.location.href = fallbackUrl;
+      } else {
+        window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+      }
+    } finally {
+      setIsSharing(false);
+      setShareStatusText("");
     }
   };
 
@@ -305,8 +337,7 @@ export default function GeneratorPage() {
   };
 
   const formattedName = (name || "Anonymous Builder").trim();
-  const activeTitle = builderTitle || "Builder";
-  const tweetCaptionText = `Just got my Hacker House Goa 2026 Builder ID 🌴⚡\nBuilder: ${formattedName} (${activeTitle})\n${BRAND_CONFIG.hashtag} @247pmstudio`;
+  const tweetCaptionText = `Just got my Hacker House Goa 2026 Builder ID 🌴⚡\nBuilder: ${formattedName}\n${BRAND_CONFIG.hashtag}`;
   const tweetIntentUrl = `https://x.com/intent/post?text=${encodeURIComponent(tweetCaptionText)}`;
 
   return (
@@ -649,7 +680,7 @@ export default function GeneratorPage() {
                   {isSharing ? (
                     <>
                       <div className="w-4 h-4 border-2 border-[#FBF7E8] border-t-transparent rounded-full animate-spin" />
-                      {shareStatusText || "Preparing Builder ID…"}
+                      {shareStatusText || "Preparing your share…"}
                     </>
                   ) : (
                     <>
@@ -849,7 +880,7 @@ export default function GeneratorPage() {
                   Your 1200×1500 Builder ID PNG has been downloaded to your device!
                 </p>
                 <p className="text-xs text-slate-300">
-                  Attach your downloaded ID card image to your X post:
+                  Opening X with your prefilled caption and card link. Your generated Builder ID will unfurl as the X post card preview:
                 </p>
                 <div className="p-3.5 rounded-xl bg-[#0B281A] border border-[#FBF7E8]/20 text-xs font-mono text-[#F1DB51] whitespace-pre-line">
                   {tweetCaptionText}
