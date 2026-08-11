@@ -202,102 +202,94 @@ export default function GeneratorPage() {
     );
   };
 
-  // Share to X Handler
-  const handleShareToX = async () => {
+  // Mobile Native Share Sheet Handler
+  const handleMobileShareToX = async (tweetCaption: string) => {
     const canvas = canvasRef.current;
-    if (!canvas) {
-      setShareErrorText("Couldn't generate your Builder ID. Please try again.");
-      return;
-    }
+    if (!canvas) return;
 
     setIsSharing(true);
-    setShareErrorText(null);
-    setShareStatusText("Preparing your Builder ID…");
-
     const formattedName = (name || "Anonymous Builder").trim();
-    const activeTitle = builderTitle || "Builder";
-    const tweetCaption = `Just got my Hacker House Goa 2026 Builder ID 🌴⚡\nBuilder: ${formattedName} (${activeTitle})\n${BRAND_CONFIG.hashtag} @247pmstudio`;
-    const tweetIntentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetCaption)}`;
 
     try {
-      // 1. Auto-download PNG file for the user
-      handleDownload();
-
-      // 2. Mobile Native Web Share API Check
       if (typeof navigator !== "undefined" && navigator.canShare) {
-        try {
-          const blob = await new Promise<Blob | null>((resolve) =>
-            canvas.toBlob(resolve, "image/png", 1.0)
+        const blob = await new Promise<Blob | null>((resolve) =>
+          canvas.toBlob(resolve, "image/png", 1.0)
+        );
+        if (blob) {
+          const file = new File(
+            [blob],
+            `HH_Goa_2026_ID_${formattedName.replace(/[^a-z0-9]/gi, "_")}.png`,
+            { type: "image/png" }
           );
-          if (blob) {
-            const file = new File(
-              [blob],
-              `HH_Goa_2026_ID_${formattedName.replace(/[^a-z0-9]/gi, "_")}.png`,
-              { type: "image/png" }
-            );
-            if (navigator.canShare({ files: [file] })) {
-              setShareStatusText("Posting to X…");
-              await navigator.share({
-                files: [file],
-                title: "HH Goa 2026 Builder ID",
-                text: tweetCaption,
-              });
-              setShareStatusText("Posted to X ✓");
-              setIsSharing(false);
-              return;
-            }
-          }
-        } catch (shareErr) {
-          if (shareErr instanceof Error && shareErr.name === "AbortError") {
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: "HH Goa 2026 Builder ID",
+              text: tweetCaption,
+            });
             setIsSharing(false);
             return;
           }
         }
       }
 
-      // 3. Try Authenticated Server-Side X API if configured
-      setShareStatusText("Connecting to X…");
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/png", 1.0)
-      );
-
-      if (blob) {
-        const formData = new FormData();
-        formData.append("file", blob, "HH_Goa_2026_Builder_ID.png");
-        formData.append("text", tweetCaption);
-
-        const apiRes = await fetch("/api/x/post-card", {
-          method: "POST",
-          body: formData,
-        });
-
-        const apiData = await apiRes.json();
-
-        // If X API is authenticated and post created successfully
-        if (apiRes.ok && apiData.success && apiData.tweetUrl) {
-          setShareStatusText("Posted to X ✓");
-          window.open(apiData.tweetUrl, "_blank", "noopener,noreferrer");
-          setIsSharing(false);
-          return;
-        }
-
-        // If X authentication is required
-        if (apiData.authRequired) {
-          window.location.href = "/api/auth/x";
-          return;
-        }
-      }
-
-      // 4. Clean Fallback: Show explicit X Share Modal + Open X composer
-      setShowXShareModal(true);
+      // Fallback if mobile native share is unhandled
+      const tweetIntentUrl = `https://x.com/intent/post?text=${encodeURIComponent(tweetCaption)}`;
       window.open(tweetIntentUrl, "_blank", "noopener,noreferrer");
-    } catch (err) {
-      console.error("Share error:", err);
-      // Open X composer fallback directly
-      setShowXShareModal(true);
+    } catch (shareErr) {
+      if (shareErr instanceof Error && shareErr.name === "AbortError") {
+        setIsSharing(false);
+        return;
+      }
+      const tweetIntentUrl = `https://x.com/intent/post?text=${encodeURIComponent(tweetCaption)}`;
       window.open(tweetIntentUrl, "_blank", "noopener,noreferrer");
     } finally {
       setIsSharing(false);
+    }
+  };
+
+  // Main Share to X Handler (Desktop: Synchronous popup-safe X composer launch + auto PNG download; Mobile: Native share sheet)
+  const handleShareToX = () => {
+    const formattedName = (name || "Anonymous Builder").trim();
+    const activeTitle = builderTitle || "Builder";
+    const tweetCaption = `Just got my Hacker House Goa 2026 Builder ID 🌴⚡\nBuilder: ${formattedName} (${activeTitle})\n${BRAND_CONFIG.hashtag} @247pmstudio`;
+    const tweetIntentUrl = `https://x.com/intent/post?text=${encodeURIComponent(tweetCaption)}`;
+
+    const isMobileDevice =
+      typeof window !== "undefined" &&
+      (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        (window.innerWidth < 768 && typeof navigator !== "undefined" && "canShare" in navigator));
+
+    if (isMobileDevice) {
+      handleMobileShareToX(tweetCaption);
+      return;
+    }
+
+    // DESKTOP: SYNCHRONOUS window.open call right inside click handler (completely popup-safe!)
+    window.open(tweetIntentUrl, "_blank", "noopener,noreferrer");
+
+    // Automatically trigger PNG download for desktop user
+    handleDownload();
+
+    // Display non-blocking guide modal
+    setShowXShareModal(true);
+
+    // Background share URL link generation for fallback preview (non-blocking)
+    if (canvasRef.current) {
+      canvasRef.current.toBlob(async (blob) => {
+        if (!blob) return;
+        try {
+          const formData = new FormData();
+          formData.append("file", blob, "HH_Goa_2026_Builder_ID.png");
+          const res = await fetch("/api/share", { method: "POST", body: formData });
+          const data = await res.json();
+          if (res.ok && data.shareUrl) {
+            setShareSuccessUrl(data.shareUrl);
+          }
+        } catch (err) {
+          console.warn("Background share link generation:", err);
+        }
+      }, "image/png", 1.0);
     }
   };
 
@@ -315,7 +307,7 @@ export default function GeneratorPage() {
   const formattedName = (name || "Anonymous Builder").trim();
   const activeTitle = builderTitle || "Builder";
   const tweetCaptionText = `Just got my Hacker House Goa 2026 Builder ID 🌴⚡\nBuilder: ${formattedName} (${activeTitle})\n${BRAND_CONFIG.hashtag} @247pmstudio`;
-  const tweetIntentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetCaptionText)}`;
+  const tweetIntentUrl = `https://x.com/intent/post?text=${encodeURIComponent(tweetCaptionText)}`;
 
   return (
     <div className="min-h-screen goa-bg-environment text-[#FBF7E8] font-sans selection:bg-[#F1DB51] selection:text-[#123A27] relative">
@@ -670,7 +662,7 @@ export default function GeneratorPage() {
                 </button>
 
                 {shareErrorText && (
-                  <p className="text-xs font-medium text-rose-300 bg-rose-900/30 p-2.5 rounded-lg border border-rose-500/30 text-center">
+                  <p className="text-xs font-medium text-rose-200 bg-rose-900/40 p-2.5 rounded-lg border border-rose-500/40 text-center">
                     {shareErrorText}
                   </p>
                 )}
