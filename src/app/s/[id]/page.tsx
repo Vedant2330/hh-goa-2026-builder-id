@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
     : `${baseUrl}/api/card-image/${id}`;
 
   const title = `HH Goa 2026 — Builder ID Pass`;
-  const description = `Just built my HH Goa 2026 Builder ID 🚀 #FrameInGoa @247pmstudio`;
+  const description = `Officially framed for Hacker House Goa 2026 🌴⚡\nReady to build, hack & ship.\n#FrameInGoa @247pmstudio`;
 
   return {
     title,
@@ -61,7 +61,7 @@ export default async function SharePage({ params }: SharePageProps) {
 
   const shareUrl = `${baseUrl}/s/${id}`;
   const tweetText = encodeURIComponent(
-    `Just built my HH Goa 2026 Builder ID 🚀 #FrameInGoa @247pmstudio`
+    `Officially framed for Hacker House Goa 2026 🌴⚡\n\nReady to build, hack & ship.\n#FrameInGoa @247pmstudio`
   );
   const tweetIntentUrl = `https://twitter.com/intent/tweet?text=${tweetText}&url=${encodeURIComponent(
     shareUrl

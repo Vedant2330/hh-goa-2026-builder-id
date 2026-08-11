@@ -42,6 +42,15 @@ export default function GeneratorPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const generatorRef = useRef<HTMLDivElement | null>(null);
 
+  // Helper to dynamically build exact X post caption
+  const buildCaptionText = useCallback(() => {
+    const bName = (name || "Anonymous Builder").trim();
+    const bStack = (stack || "Full-Stack Developer / AI Builder").trim();
+    const bTitle = (builderTitle || "Builder").trim();
+
+    return `Officially framed for Hacker House Goa 2026 🌴⚡\n\n👤 Builder: ${bName}\n🛠️ Stack: ${bStack}\n⚡ Builder Title: ${bTitle}\n\nReady to build, hack & ship.\n${BRAND_CONFIG.hashtag}`;
+  }, [name, stack, builderTitle]);
+
   // Auto-generate title whenever stack/name change
   useEffect(() => {
     if (!titleOverride) {
@@ -252,8 +261,7 @@ export default function GeneratorPage() {
   // Mobile: Preserves native share sheet with attached PNG
   const handleShareToX = async () => {
     const canvas = canvasRef.current;
-    const formattedName = (name || "Anonymous Builder").trim();
-    const baseCaption = `Just got my Hacker House Goa 2026 Builder ID 🌴⚡\nBuilder: ${formattedName}\n${BRAND_CONFIG.hashtag}`;
+    const baseCaption = buildCaptionText();
 
     const isMobileDevice =
       typeof window !== "undefined" &&
@@ -298,7 +306,7 @@ export default function GeneratorPage() {
 
       setShareSuccessUrl(data.shareUrl);
 
-      // 3. Open X post composer with dynamic caption + unique share URL (X unfurls actual generated Builder ID OG Image!)
+      // 3. Open X post composer with dynamic exact caption + unique share URL (X unfurls actual generated Builder ID OG Image!)
       const tweetIntentUrl = `https://x.com/intent/post?text=${encodeURIComponent(
         baseCaption
       )}&url=${encodeURIComponent(data.shareUrl)}`;
@@ -336,8 +344,7 @@ export default function GeneratorPage() {
     generatorRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const formattedName = (name || "Anonymous Builder").trim();
-  const tweetCaptionText = `Just got my Hacker House Goa 2026 Builder ID 🌴⚡\nBuilder: ${formattedName}\n${BRAND_CONFIG.hashtag}`;
+  const tweetCaptionText = buildCaptionText();
   const tweetIntentUrl = `https://x.com/intent/post?text=${encodeURIComponent(tweetCaptionText)}`;
 
   return (
