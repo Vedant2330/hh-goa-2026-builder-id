@@ -183,19 +183,19 @@ export async function renderBuilderCardCanvas({
 
   ctx.restore();
 
-  // 6. IDENTITY BLOCK — INTENTIONAL VERTICAL RHYTHM
+  // 6. IDENTITY BLOCK — BALANCED VERTICAL RHYTHM & STRENGTHENED STACK FIELD
   //
   // Photo outer frame bottom: 739px
-  //   ↓ 26px visual gap
-  // Name baseline: 786px  (cap height ~21px, so visual top ≈ 765px)
-  //   ↓ 19px visual gap
-  // Pill top: 806px, pill center: 830px, pill bottom: 854px
-  //   ↓ 22px visual gap
-  // Stack box top: 876px, stack box bottom: 924px
-  //   ↓ 316px open artwork/sunset
+  //   ↓ ~26px visual gap
+  // Name baseline: 796px (font top ~764px)
+  //   ↓ ~24px visual gap
+  // Title Pill top: 820px, center: 844px, bottom: 868px (height 48px)
+  //   ↓ ~26px visual gap
+  // Stack Box top: 894px, center: 921px, bottom: 948px (height 54px)
+  //   ↓ ~292px open artwork/sunset space
   // Bottom panel: 1240px
 
-  const nameBaselineY = 786;
+  const nameBaselineY = 796;
   const displayName = (name || "ANONYMOUS BUILDER").trim().toUpperCase();
   let nameFontSize = 48;
   ctx.font = `900 ${nameFontSize}px system-ui, -apple-system, 'Space Grotesk', sans-serif`;
@@ -208,10 +208,9 @@ export async function renderBuilderCardCanvas({
   ctx.textAlign = "center";
   ctx.fillText(displayName, width / 2, nameBaselineY);
 
-  // Gap 2: Builder Name (786px) -> Title Badge Pill top (806px): 19px gap
-  // Pill center at 830px, pill height 48px (top 806, bottom 854)
+  // Builder Title Badge Pill (Goa Magenta `#D62F73`)
   const finalTitle = builderTitleOverride || generateBuilderTitle(stack, name);
-  const pillCenterY = 830;
+  const pillCenterY = 844;
 
   ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
   const titleMetrics = ctx.measureText(finalTitle);
@@ -233,23 +232,24 @@ export async function renderBuilderCardCanvas({
   ctx.textAlign = "center";
   ctx.fillText(finalTitle, width / 2, pillCenterY + 7);
 
-  // Gap 3: Title Badge Pill Bottom (854px) -> Stack/Role Box Top (876px): 22px gap
-  // Box top at 876px, height 48px (bottom at 924px), text baseline at 909px
-  const stackBoxTopY = 876;
+  // Stack / Role Field Box — Restyled for stronger credential presence & better vertical padding
+  const stackBoxTopY = 894;
   const displayStack = (stack || "Full-Stack Developer / AI Builder").trim();
 
   const stackBoxW = 880;
-  const stackBoxH = 48;
+  const stackBoxH = 54; // Height increased from 48px to 54px for improved vertical padding
   const stackBoxX = (width - stackBoxW) / 2; // 160px
-  const stackTextBaselineY = stackBoxTopY + 33; // 909px
+  const stackTextBaselineY = stackBoxTopY + 34; // 928px
 
-  ctx.fillStyle = "rgba(7, 59, 41, 0.9)";
-  drawRoundedRect(ctx, stackBoxX, stackBoxTopY, stackBoxW, stackBoxH, 12);
+  // Translucent Dark Green fill to let Goa background artwork remain visible
+  ctx.fillStyle = "rgba(7, 59, 41, 0.82)";
+  drawRoundedRect(ctx, stackBoxX, stackBoxTopY, stackBoxW, stackBoxH, 14);
   ctx.fill();
 
-  ctx.strokeStyle = BRAND_CONFIG.colors.jungleGreen;
-  ctx.lineWidth = 1.5;
-  drawRoundedRect(ctx, stackBoxX, stackBoxTopY, stackBoxW, stackBoxH, 12);
+  // Subtle Sunset Yellow & Jungle Green border for a refined credential badge feel
+  ctx.strokeStyle = "rgba(246, 217, 40, 0.4)";
+  ctx.lineWidth = 2;
+  drawRoundedRect(ctx, stackBoxX, stackBoxTopY, stackBoxW, stackBoxH, 14);
   ctx.stroke();
 
   ctx.fillStyle = BRAND_CONFIG.colors.sunsetYellow;
