@@ -17,7 +17,7 @@ export default function GeneratorPage() {
   const [builderTitle, setBuilderTitle] = useState<string>("");
   const [titleOverride, setTitleOverride] = useState<string | null>(null);
 
-  // In-Memory Processed Image (Uploaded once, preserved in memory for instant 0ms canvas redraws)
+  // In-Memory Processed Image
   const [userImage, setUserImage] = useState<HTMLImageElement | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState<boolean>(false);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -28,10 +28,13 @@ export default function GeneratorPage() {
   // Card Background Artwork (`card-bg.png`)
   const [cardBgArtwork, setCardBgArtwork] = useState<HTMLImageElement | null>(null);
 
-  // Sharing states
+  // Sharing & X Integration states
   const [isSharing, setIsSharing] = useState<boolean>(false);
-  const [copied, setCopied] = useState<boolean>(false);
+  const [shareStatusText, setShareStatusText] = useState<string>("");
+  const [shareErrorText, setShareErrorText] = useState<string | null>(null);
+  const [showXShareModal, setShowXShareModal] = useState<boolean>(false);
   const [shareSuccessUrl, setShareSuccessUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState<boolean>(false);
 
   // Refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -39,7 +42,7 @@ export default function GeneratorPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const generatorRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto-generate title whenever stack/name change (unless user manually shuffled)
+  // Auto-generate title whenever stack/name change
   useEffect(() => {
     if (!titleOverride) {
       const generated = generateBuilderTitle(stack, name);
@@ -51,7 +54,6 @@ export default function GeneratorPage() {
 
   // Load initial placeholder avatar and authentic card background asset on mount
   useEffect(() => {
-    // 1. Placeholder Avatar Image
     const defaultImg = new Image();
     defaultImg.crossOrigin = "anonymous";
     defaultImg.onload = () => setUserImage(defaultImg);
@@ -67,14 +69,13 @@ export default function GeneratorPage() {
       </svg>
     `);
 
-    // 2. Card Background Asset (MobileUI+IDcard.png)
     const cardBg = new Image();
     cardBg.crossOrigin = "anonymous";
     cardBg.onload = () => setCardBgArtwork(cardBg);
     cardBg.src = "/assets/card-bg.png";
   }, []);
 
-  // In-memory instant canvas redraw (0ms delay, no reloads, no server requests)
+  // In-memory instant canvas redraw
   const triggerRender = useCallback(async () => {
     const renderOptions = {
       userImage,
@@ -104,7 +105,7 @@ export default function GeneratorPage() {
     triggerRender();
   }, [triggerRender]);
 
-  // Immediate render trigger on mobile modal open to prevent blank initial preview
+  // Immediate render trigger on mobile modal open
   useEffect(() => {
     if (isMobileAdjustOpen) {
       triggerRender();
@@ -115,7 +116,7 @@ export default function GeneratorPage() {
     }
   }, [isMobileAdjustOpen, triggerRender]);
 
-  // Callback ref for modal canvas element: renders instantly upon DOM mount
+  // Callback ref for modal canvas element
   const setModalCanvasRef = useCallback(
     (node: HTMLCanvasElement | null) => {
       modalCanvasRef.current = node;
@@ -134,20 +135,15 @@ export default function GeneratorPage() {
     [userImage, name, stack, builderTitle, adjustments, cardBgArtwork]
   );
 
-  // File Upload Handler (Processed ONCE, kept in memory for all edits)
+  // File Upload Handler
   const handleFileSelect = async (file: File) => {
     if (!file) return;
     setIsProcessingImage(true);
     setImageError(null);
 
     try {
-      // 1. Convert HEIC if needed
       const convertedBlob = await convertHeicIfNeeded(file);
-
-      // 2. Downscale image (max 2000px)
       const processedImg = await processAndDownscaleImage(convertedBlob, 2000);
-
-      // Reset adjustments & store in memory
       setAdjustments(DEFAULT_ADJUSTMENTS);
       setUserImage(processedImg);
     } catch (err: unknown) {
@@ -206,38 +202,49 @@ export default function GeneratorPage() {
     );
   };
 
-  // Share to X Handler (Popup-Safe, Auto-Downloads PNG + Opens X Composer with prefilled text)
+  // Share to X Handler
   const handleShareToX = async () => {
     const canvas = canvasRef.current;
+    if (!canvas) {
+      setShareErrorText("Couldn't generate your Builder ID. Please try again.");
+      return;
+    }
+
+    setIsSharing(true);
+    setShareErrorText(null);
+    setShareStatusText("Preparing your Builder ID…");
+
     const formattedName = (name || "Anonymous Builder").trim();
     const activeTitle = builderTitle || "Builder";
     const tweetCaption = `Just got my Hacker House Goa 2026 Builder ID 🌴⚡\nBuilder: ${formattedName} (${activeTitle})\n${BRAND_CONFIG.hashtag} @247pmstudio`;
     const tweetIntentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetCaption)}`;
 
-    setIsSharing(true);
-
     try {
-      // 1. Auto-download PNG file synchronously for the user
+      // 1. Auto-download PNG file for the user
       handleDownload();
 
-      // 2. Mobile Native Web Share API check
-      let sharedViaWebShare = false;
-      if (canvas && typeof navigator !== "undefined" && navigator.canShare) {
+      // 2. Mobile Native Web Share API Check
+      if (typeof navigator !== "undefined" && navigator.canShare) {
         try {
           const blob = await new Promise<Blob | null>((resolve) =>
             canvas.toBlob(resolve, "image/png", 1.0)
           );
           if (blob) {
-            const file = new File([blob], `HH_Goa_2026_ID_${formattedName.replace(/[^a-z0-9]/gi, "_")}.png`, {
-              type: "image/png",
-            });
+            const file = new File(
+              [blob],
+              `HH_Goa_2026_ID_${formattedName.replace(/[^a-z0-9]/gi, "_")}.png`,
+              { type: "image/png" }
+            );
             if (navigator.canShare({ files: [file] })) {
+              setShareStatusText("Posting to X…");
               await navigator.share({
                 files: [file],
                 title: "HH Goa 2026 Builder ID",
                 text: tweetCaption,
               });
-              sharedViaWebShare = true;
+              setShareStatusText("Posted to X ✓");
+              setIsSharing(false);
+              return;
             }
           }
         } catch (shareErr) {
@@ -245,35 +252,49 @@ export default function GeneratorPage() {
             setIsSharing(false);
             return;
           }
-          console.warn("Mobile Web Share fallback to window.open", shareErr);
         }
       }
 
-      // 3. Desktop / Web Fallback: Open X post composer directly (popup-safe!)
-      if (!sharedViaWebShare) {
-        window.open(tweetIntentUrl, "_blank", "noopener,noreferrer");
+      // 3. Try Authenticated Server-Side X API if configured
+      setShareStatusText("Connecting to X…");
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/png", 1.0)
+      );
+
+      if (blob) {
+        const formData = new FormData();
+        formData.append("file", blob, "HH_Goa_2026_Builder_ID.png");
+        formData.append("text", tweetCaption);
+
+        const apiRes = await fetch("/api/x/post-card", {
+          method: "POST",
+          body: formData,
+        });
+
+        const apiData = await apiRes.json();
+
+        // If X API is authenticated and post created successfully
+        if (apiRes.ok && apiData.success && apiData.tweetUrl) {
+          setShareStatusText("Posted to X ✓");
+          window.open(apiData.tweetUrl, "_blank", "noopener,noreferrer");
+          setIsSharing(false);
+          return;
+        }
+
+        // If X authentication is required
+        if (apiData.authRequired) {
+          window.location.href = "/api/auth/x";
+          return;
+        }
       }
 
-      // 4. Background upload for share URL link generation (non-blocking)
-      if (canvas) {
-        canvas.toBlob(async (blob) => {
-          if (!blob) return;
-          try {
-            const formData = new FormData();
-            formData.append("file", blob, "HH_Goa_2026_Builder_ID.png");
-            const res = await fetch("/api/share", { method: "POST", body: formData });
-            const data = await res.json();
-            if (res.ok && data.shareUrl) {
-              setShareSuccessUrl(data.shareUrl);
-            }
-          } catch (err) {
-            console.warn("Background share link generation failed:", err);
-          }
-        }, "image/png", 1.0);
-      }
+      // 4. Clean Fallback: Show explicit X Share Modal + Open X composer
+      setShowXShareModal(true);
+      window.open(tweetIntentUrl, "_blank", "noopener,noreferrer");
     } catch (err) {
       console.error("Share error:", err);
-      // Fallback to opening X composer directly
+      // Open X composer fallback directly
+      setShowXShareModal(true);
       window.open(tweetIntentUrl, "_blank", "noopener,noreferrer");
     } finally {
       setIsSharing(false);
@@ -291,9 +312,14 @@ export default function GeneratorPage() {
     generatorRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const formattedName = (name || "Anonymous Builder").trim();
+  const activeTitle = builderTitle || "Builder";
+  const tweetCaptionText = `Just got my Hacker House Goa 2026 Builder ID 🌴⚡\nBuilder: ${formattedName} (${activeTitle})\n${BRAND_CONFIG.hashtag} @247pmstudio`;
+  const tweetIntentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetCaptionText)}`;
+
   return (
     <div className="min-h-screen goa-bg-environment text-[#FBF7E8] font-sans selection:bg-[#F1DB51] selection:text-[#123A27] relative">
-      {/* Semi-transparent protective gradient layer for contrast */}
+      {/* Semi-transparent protective gradient layer */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#123A27]/40 via-transparent to-[#123A27]/80 pointer-events-none z-0" />
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-4 md:py-6 flex flex-col min-h-screen">
@@ -631,7 +657,7 @@ export default function GeneratorPage() {
                   {isSharing ? (
                     <>
                       <div className="w-4 h-4 border-2 border-[#FBF7E8] border-t-transparent rounded-full animate-spin" />
-                      Preparing Share Link...
+                      {shareStatusText || "Preparing Builder ID…"}
                     </>
                   ) : (
                     <>
@@ -642,6 +668,12 @@ export default function GeneratorPage() {
                     </>
                   )}
                 </button>
+
+                {shareErrorText && (
+                  <p className="text-xs font-medium text-rose-300 bg-rose-900/30 p-2.5 rounded-lg border border-rose-500/30 text-center">
+                    {shareErrorText}
+                  </p>
+                )}
 
                 {shareSuccessUrl && (
                   <div className="p-3 rounded-xl bg-[#0B281A] border border-[#F1DB51]/30 text-xs flex items-center justify-between gap-2">
@@ -710,7 +742,7 @@ export default function GeneratorPage() {
 
               {/* Modal Body: Scaled Live Canvas + Controls in Viewport */}
               <div className="p-4 overflow-y-auto space-y-4 flex-1 flex flex-col items-center">
-                {/* Live Card Preview (Same rendering engine, callback ref for instant initial render on mount!) */}
+                {/* Live Card Preview */}
                 <div className="w-full max-w-[280px] sm:max-w-[320px] aspect-[4/5] rounded-2xl overflow-hidden border-2 border-[#F1DB51] bg-[#123A27] shadow-xl relative shrink-0">
                   <canvas
                     ref={setModalCanvasRef}
@@ -797,6 +829,62 @@ export default function GeneratorPage() {
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* X SHARE DIALOG MODAL / BANNER */}
+        {showXShareModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+            <div className="w-full max-w-md bg-[#123A27] border-2 border-[#F1DB51] rounded-3xl p-6 shadow-2xl text-[#FBF7E8] space-y-5">
+              <div className="flex items-center justify-between border-b border-[#FBF7E8]/20 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">📥</span>
+                  <h4 className="font-black text-lg text-[#FBF7E8]">Builder ID Saved!</h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowXShareModal(false)}
+                  className="text-xs font-bold text-[#DEEAE0] hover:text-[#F1DB51] transition"
+                >
+                  ✕ Close
+                </button>
+              </div>
+
+              <div className="space-y-3 text-sm text-[#DEEAE0]">
+                <p className="font-semibold">
+                  Your 1200×1500 Builder ID PNG has been downloaded to your device!
+                </p>
+                <p className="text-xs text-slate-300">
+                  Attach your downloaded ID card image to your X post:
+                </p>
+                <div className="p-3.5 rounded-xl bg-[#0B281A] border border-[#FBF7E8]/20 text-xs font-mono text-[#F1DB51] whitespace-pre-line">
+                  {tweetCaptionText}
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                <a
+                  href={tweetIntentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setShowXShareModal(false)}
+                  className="w-full py-3.5 px-4 rounded-xl font-black text-xs bg-[#F1DB51] hover:bg-[#E9B91E] text-[#123A27] transition shadow-md text-center flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                  Open X Composer 🚀
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => setShowXShareModal(false)}
+                  className="w-full sm:w-auto py-3.5 px-5 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/15 text-[#FBF7E8] border border-[#FBF7E8]/20 transition text-center"
+                >
+                  Done
+                </button>
               </div>
             </div>
           </div>
