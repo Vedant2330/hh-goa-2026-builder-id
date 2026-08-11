@@ -104,6 +104,36 @@ export default function GeneratorPage() {
     triggerRender();
   }, [triggerRender]);
 
+  // Immediate render trigger on mobile modal open to prevent blank initial preview
+  useEffect(() => {
+    if (isMobileAdjustOpen) {
+      triggerRender();
+      const frameId = requestAnimationFrame(() => {
+        triggerRender();
+      });
+      return () => cancelAnimationFrame(frameId);
+    }
+  }, [isMobileAdjustOpen, triggerRender]);
+
+  // Callback ref for modal canvas element: renders instantly upon DOM mount
+  const setModalCanvasRef = useCallback(
+    (node: HTMLCanvasElement | null) => {
+      modalCanvasRef.current = node;
+      if (node) {
+        renderBuilderCardCanvas({
+          canvas: node,
+          userImage,
+          name,
+          stack,
+          builderTitleOverride: builderTitle,
+          adjustments,
+          bgArtwork: cardBgArtwork,
+        });
+      }
+    },
+    [userImage, name, stack, builderTitle, adjustments, cardBgArtwork]
+  );
+
   // File Upload Handler (Processed ONCE, kept in memory for all edits)
   const handleFileSelect = async (file: File) => {
     if (!file) return;
@@ -683,10 +713,10 @@ export default function GeneratorPage() {
 
               {/* Modal Body: Scaled Live Canvas + Controls in Viewport */}
               <div className="p-4 overflow-y-auto space-y-4 flex-1 flex flex-col items-center">
-                {/* Live Card Preview (Same rendering engine!) */}
+                {/* Live Card Preview (Same rendering engine, callback ref for instant initial render on mount!) */}
                 <div className="w-full max-w-[280px] sm:max-w-[320px] aspect-[4/5] rounded-2xl overflow-hidden border-2 border-[#F1DB51] bg-[#123A27] shadow-xl relative shrink-0">
                   <canvas
-                    ref={modalCanvasRef}
+                    ref={setModalCanvasRef}
                     className="w-full h-full object-contain display-block"
                   />
                 </div>
